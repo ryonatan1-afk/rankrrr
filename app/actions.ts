@@ -116,7 +116,7 @@ export async function getOrCreateSession(categorySlug: string) {
   });
 
   if (!session) {
-    const bracket = generateBracket(category.items.map((i) => i.id));
+    const bracket = generateBracket(category.items.map((i: { id: string }) => i.id));
     session = await db.userSession.create({
       data: {
         userId: user.id,
