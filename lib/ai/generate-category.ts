@@ -1,7 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic();
-
 export interface GeneratedItem {
   name: string;
   emoji: string;
@@ -16,6 +14,9 @@ export interface GeneratedCategory {
 }
 
 export async function generateCategory(topic: string): Promise<GeneratedCategory> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+  const client = new Anthropic({ apiKey });
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
