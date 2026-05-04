@@ -1,65 +1,110 @@
-import Image from "next/image";
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { CategoryLink } from "@/components/category-link";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const categories = await db.category.findMany({
+    where: { status: "ACTIVE" },
+    include: { _count: { select: { votes: true } } },
+    orderBy: { createdAt: "asc" },
+    take: 3,
+  });
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="flex-1 flex flex-col items-center justify-center px-4 py-16 relative">
+      {/* Animated background orbs */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
+        <div style={{ position: "absolute", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)", top: "-100px", left: "-100px", animation: "orb1 18s ease-in-out infinite", filter: "blur(40px)" }} />
+        <div style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 70%)", bottom: "-80px", right: "-80px", animation: "orb2 22s ease-in-out infinite", filter: "blur(50px)" }} />
+        <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(52,211,153,0.08) 0%, transparent 70%)", top: "40%", right: "20%", animation: "orb3 28s ease-in-out infinite", filter: "blur(60px)" }} />
+      </div>
+
+      <div className="relative z-10 w-full max-w-lg flex flex-col items-center gap-12">
+        {/* Hero */}
+        <div className="text-center flex flex-col items-center gap-6">
+          <div style={{
+            width: 72, height: 72, borderRadius: 20,
+            background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 34, boxShadow: "0 12px 48px rgba(99,102,241,0.5), 0 0 0 1px rgba(99,102,241,0.3)",
+          }}>⚡</div>
+
+          <div>
+            <h1 style={{
+              fontSize: 72, fontWeight: 800, letterSpacing: "-0.06em", lineHeight: 0.95,
+              background: "linear-gradient(135deg, #fff 40%, rgba(255,255,255,0.5))",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            }}>
+              Rankr
+            </h1>
+            <p style={{ fontSize: 17, color: "rgba(255,255,255,0.45)", marginTop: 14, lineHeight: 1.6 }}>
+              Pick your favourite in 1v1 matchups.<br />See what the crowd really thinks.
+            </p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        {/* Features */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, width: "100%" }}>
+          {[
+            { icon: "⚔️", title: "1v1 Brackets", desc: "7 votes, clean tournament." },
+            { icon: "📊", title: "Crowd Rankings", desc: "Aggregate of all voters." },
+            { icon: "✨", title: "AI Categories", desc: "Generate any topic instantly." },
+          ].map((f) => (
+            <div key={f.title} style={{
+              background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 16, padding: "16px 14px",
+            }}>
+              <div style={{ fontSize: 22, marginBottom: 8 }}>{f.icon}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700 }}>{f.title}</div>
+              <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.35)", marginTop: 3 }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Category list */}
+        <div style={{
+          width: "100%", background: "rgba(255,255,255,0.025)",
+          border: "1px solid rgba(255,255,255,0.07)", borderRadius: 22, padding: "20px 18px",
+          display: "flex", flexDirection: "column", gap: 10,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
+            Start ranking
+          </div>
+          {categories.map((cat) => (
+            <CategoryLink
+              key={cat.id}
+              href={`/categories/${cat.slug}/vote`}
+              emoji={cat.emoji ?? ""}
+              name={cat.name}
+              voteCount={cat._count.votes}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          ))}
+          <Link
+            href="/categories/new"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "14px", borderRadius: 14,
+              border: "1px dashed rgba(99,102,241,0.35)",
+              background: "transparent", textDecoration: "none", transition: "all 0.15s ease",
+            }}
           >
-            Documentation
-          </a>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 22 }}>✨</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#818CF8", letterSpacing: "-0.02em" }}>Generate with AI</div>
+                <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>Type any topic — Claude builds it</div>
+              </div>
+            </div>
+            <span style={{ fontSize: 15, color: "#818CF8" }}>→</span>
+          </Link>
         </div>
-      </main>
-    </div>
+
+        <Link href="/categories" style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none" }}>
+          Browse all categories →
+        </Link>
+      </div>
+    </main>
   );
 }

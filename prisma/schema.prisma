@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id // Clerk user ID
+  email     String   @unique
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categories Category[]
+  votes      Vote[]
+  sessions   UserSession[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  name        String
+  description String?
+  emoji       String?
+  location    String?        // optional geo tag (city, country, etc.)
+  isPublic    Boolean        @default(true)
+  status      CategoryStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id])
+
+  items    Item[]
+  votes    Vote[]
+  sessions UserSession[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([location])
+  @@map("categories")
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  emoji       String?
+  color       String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  winsAsA Vote[] @relation("ItemA")
+  winsAsB Vote[] @relation("ItemB")
+
+  @@index([categoryId])
+  @@map("items")
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  itemAId String
+  itemA   Item   @relation("ItemA", fields: [itemAId], references: [id])
+
+  itemBId String
+  itemB   Item   @relation("ItemB", fields: [itemBId], references: [id])
+
+  winnerId String // must equal itemAId or itemBId
+  round    Int    @default(1)
+
+  @@unique([userId, itemAId, itemBId]) // one vote per pair per user
+  @@index([userId, categoryId])
+  @@index([categoryId])
+  @@map("votes")
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  currentRound Int  @default(0)
+  bracketState Json // serialized bracket progress
+
+  @@unique([userId, categoryId])
+  @@index([userId])
+  @@map("user_sessions")
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum CategoryStatus {
+  ACTIVE
+  HIDDEN
+  DELETED
+}

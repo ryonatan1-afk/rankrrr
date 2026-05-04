@@ -1,0 +1,7 @@
+{
+  "name": "rankrrr",
+  "private": true,
+  "scripts": {
+    "dev": "npx live-server --port=3000 --open=Rankr.html --watch=."
+  }
+}

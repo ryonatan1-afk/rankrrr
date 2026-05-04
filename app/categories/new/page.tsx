@@ -1,0 +1,281 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { generateCategoryAction, createCategoryAction } from "@/app/actions";
+import type { GeneratedCategory } from "@/lib/ai/generate-category";
+
+export default function NewCategoryPage() {
+  const router = useRouter();
+  const [topic, setTopic] = useState("");
+  const [phase, setPhase] = useState<"input" | "generating" | "preview" | "saving">("input");
+  const [preview, setPreview] = useState<GeneratedCategory | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleGenerate() {
+    if (!topic.trim()) return;
+    setError(null);
+    setPhase("generating");
+    try {
+      const result = await generateCategoryAction(topic.trim());
+      setPreview(result);
+      setPhase("preview");
+    } catch (e) {
+      setError("Generation failed — try a different topic.");
+      setPhase("input");
+    }
+  }
+
+  async function handleSave() {
+    if (!preview) return;
+    setPhase("saving");
+    try {
+      const { slug } = await createCategoryAction(preview);
+      router.push(`/categories/${slug}/vote`);
+    } catch (e) {
+      setError("Failed to save. Please try again.");
+      setPhase("preview");
+    }
+  }
+
+  return (
+    <main className="flex-1 flex flex-col items-center px-4 py-10">
+      <div className="w-full max-w-xl flex flex-col gap-8">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              color: "var(--muted)",
+              cursor: "pointer",
+            }}
+          >
+            ← Back
+          </button>
+          <div>
+            <span className="font-semibold tracking-tight">New Category</span>
+          </div>
+        </div>
+
+        {/* Input phase */}
+        {(phase === "input" || phase === "generating") && (
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 20,
+              padding: "28px 24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>✨</div>
+              <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", marginBottom: 6 }}>
+                Generate with AI
+              </h2>
+              <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6 }}>
+                Type any topic and Claude will create 8 rankable items for a 1v1 bracket.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+                placeholder="e.g. 90s video games, pasta shapes, dog breeds…"
+                disabled={phase === "generating"}
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 12,
+                  padding: "14px 16px",
+                  fontSize: 15,
+                  color: "#fff",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  transition: "border-color 0.15s ease",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = "rgba(99,102,241,0.5)")}
+                onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+              />
+
+              <button
+                onClick={handleGenerate}
+                disabled={!topic.trim() || phase === "generating"}
+                style={{
+                  background: phase === "generating" ? "rgba(99,102,241,0.4)" : "var(--accent)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "14px",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: phase === "generating" ? "default" : "pointer",
+                  boxShadow: phase === "generating" ? "none" : "0 4px 20px var(--accent-glow)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  transition: "all 0.18s ease",
+                }}
+              >
+                {phase === "generating" ? (
+                  <>
+                    <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⟳</span>
+                    Generating…
+                  </>
+                ) : (
+                  "Generate →"
+                )}
+              </button>
+            </div>
+
+            {error && (
+              <div style={{
+                background: "rgba(248,113,113,0.08)",
+                border: "1px solid rgba(248,113,113,0.2)",
+                borderRadius: 10,
+                padding: "10px 14px",
+                fontSize: 13,
+                color: "#F87171",
+              }}>
+                {error}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Preview phase */}
+        {(phase === "preview" || phase === "saving") && preview && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Category header */}
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 20,
+                padding: "22px 22px 18px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+                <span style={{ fontSize: 30 }}>{preview.emoji}</span>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.03em" }}>{preview.name}</div>
+                  <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>{preview.description}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Items grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+              }}
+            >
+              {preview.items.map((item, i) => (
+                <div
+                  key={i}
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 14,
+                    padding: "14px 14px",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    animation: "fadeup 0.3s ease forwards",
+                    animationDelay: `${i * 0.04}s`,
+                    opacity: 0,
+                  }}
+                >
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>{item.emoji}</span>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 650, letterSpacing: "-0.02em" }}>{item.name}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 3, lineHeight: 1.5 }}>
+                      {item.description}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={handleSave}
+                disabled={phase === "saving"}
+                style={{
+                  flex: 1,
+                  background: phase === "saving" ? "rgba(52,211,153,0.4)" : "rgba(52,211,153,0.15)",
+                  color: "#34D399",
+                  border: "1px solid rgba(52,211,153,0.3)",
+                  borderRadius: 12,
+                  padding: "13px",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: phase === "saving" ? "default" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  transition: "all 0.18s ease",
+                }}
+              >
+                {phase === "saving" ? (
+                  <>
+                    <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⟳</span>
+                    Saving…
+                  </>
+                ) : (
+                  "Save & Start Voting →"
+                )}
+              </button>
+              <button
+                onClick={() => { setPhase("input"); setPreview(null); }}
+                disabled={phase === "saving"}
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  color: "var(--muted)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 12,
+                  padding: "13px 18px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                ↺ Redo
+              </button>
+            </div>
+
+            {error && (
+              <div style={{
+                background: "rgba(248,113,113,0.08)",
+                border: "1px solid rgba(248,113,113,0.2)",
+                borderRadius: 10,
+                padding: "10px 14px",
+                fontSize: 13,
+                color: "#F87171",
+              }}>
+                {error}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
