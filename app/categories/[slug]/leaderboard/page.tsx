@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Item } from "@prisma/client";
 import { db } from "@/lib/db";
 import { computeElo } from "@/lib/elo";
 
@@ -52,7 +53,7 @@ export default async function LeaderboardPage({ params }: Props) {
   const totalVotes = votes.length;
 
   const ranked = category.items
-    .map((item) => ({
+    .map((item: Item) => ({
       ...item,
       score: eloMap.get(item.id) ?? { itemId: item.id, elo: 1200, wins: 0, losses: 0, eloHistory: [1200] },
     }))
