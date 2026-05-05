@@ -23,7 +23,7 @@ export default async function BracketPage({ params }: Props) {
 
   const session = userId
     ? await db.userSession.findUnique({
-        where: { userId_categoryId: { userId, categoryId: category.id } },
+        where: { userId_categoryId_part: { userId, categoryId: category.id, part: 1 } },
       })
     : null;
 

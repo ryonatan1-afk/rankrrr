@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { RedoButton } from "@/components/redo-button";
 
 export const dynamic = "force-dynamic";
 
@@ -114,17 +115,22 @@ export default async function CategoriesPage() {
                   >
                     Rankings
                   </Link>
-                  <Link
-                    href={`/categories/${cat.slug}/vote`}
-                    className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                    style={{
-                      background: isComplete ? "rgba(52,211,153,0.1)" : "var(--accent)",
-                      color: isComplete ? "#34D399" : "#fff",
-                      boxShadow: isComplete ? "none" : "0 4px 16px var(--accent-glow)",
-                    }}
-                  >
-                    {isComplete ? "↺ Redo" : done > 0 ? "Continue →" : "Vote →"}
-                  </Link>
+                  {isComplete ? (
+                    <RedoButton slug={cat.slug} />
+                  ) : (
+                    <Link
+                      href={`/categories/${cat.slug}/vote`}
+                      className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                      style={{
+                        background: "var(--accent)",
+                        color: "#fff",
+                        boxShadow: "0 4px 16px var(--accent-glow)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      {done > 0 ? "Continue →" : "Vote →"}
+                    </Link>
+                  )}
                 </div>
               </div>
             );

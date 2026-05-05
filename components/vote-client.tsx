@@ -25,6 +25,8 @@ interface Props {
   categorySlug: string;
   initialBracketState: BracketState;
   itemMap: Record<string, Item>;
+  part: number;
+  canStartPart2: boolean;
 }
 
 function ConfettiParticle({ x, y, color, angle, dist }: { x: number; y: number; color: string; angle: number; dist: number }) {
@@ -140,15 +142,10 @@ function MatchupCard({
         {item.emoji}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
+      <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2 }}>
           {item.name}
         </div>
-        {item.description && (
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.55, maxWidth: 200 }}>
-            {item.description}
-          </div>
-        )}
       </div>
 
       {isIdle && (
@@ -179,7 +176,7 @@ function MatchupCard({
   );
 }
 
-export default function VoteClient({ categoryId, categorySlug, initialBracketState, itemMap }: Props) {
+export default function VoteClient({ categoryId, categorySlug, initialBracketState, itemMap, part, canStartPart2 }: Props) {
   const router = useRouter();
   const [state, setState] = useState<BracketState>(initialBracketState);
   const [animPhase, setAnimPhase] = useState<"idle" | "selected" | "transitioning">("idle");
@@ -210,18 +207,26 @@ export default function VoteClient({ categoryId, categorySlug, initialBracketSta
     setConfetti(particles);
     setTimeout(() => setConfetti([]), 800);
 
-    // Start transition
-    setTimeout(() => {
-      setVisible(false);
-      setTimeout(async () => {
-        const nextState = await submitVote(categoryId, winnerId, loserId, state.currentRound);
-        setState(nextState);
-        setAnimPhase("idle");
-        setSelectedId(null);
-        setVisible(true);
-      }, 260);
-    }, 480);
-  }, [animPhase, categoryId, state.currentRound]);
+    // Fire server action immediately — runs in parallel with the animation
+    const votePromise = submitVote(categoryId, winnerId, loserId, state.currentRound, part);
+
+    // Fade cards out after brief "selected" flash
+    const FADE_OUT_DELAY = 300;
+    const MIN_BLANK_MS = 120; // minimum time cards stay hidden before new ones appear
+
+    setTimeout(() => setVisible(false), FADE_OUT_DELAY);
+
+    // Wait for both the fade-out to finish AND the server to respond
+    const [nextState] = await Promise.all([
+      votePromise,
+      new Promise<void>(resolve => setTimeout(resolve, FADE_OUT_DELAY + MIN_BLANK_MS)),
+    ]);
+
+    setState(nextState);
+    setAnimPhase("idle");
+    setSelectedId(null);
+    setVisible(true);
+  }, [animPhase, categoryId, state.currentRound, part]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -282,12 +287,28 @@ export default function VoteClient({ categoryId, categorySlug, initialBracketSta
 
         {/* Actions */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          {part === 1 && (
+            <a
+              href={`/categories/${categorySlug}/vote?part=2`}
+              style={{
+                background: "linear-gradient(135deg, #6366F1, #8B5CF6)", color: "#fff",
+                border: "none", borderRadius: 12,
+                padding: "12px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                boxShadow: "0 4px 20px rgba(99,102,241,0.4)", textDecoration: "none",
+              }}
+            >
+              ⚔️ Rank 8 more challengers →
+            </a>
+          )}
           <a
             href={`/categories/${categorySlug}/leaderboard`}
             style={{
-              background: "var(--accent)", color: "#fff", border: "none", borderRadius: 12,
-              padding: "12px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer",
-              boxShadow: "0 4px 20px var(--accent-glow)", textDecoration: "none",
+              background: part === 1 ? "rgba(255,255,255,0.05)" : "var(--accent)",
+              color: part === 1 ? "rgba(255,255,255,0.5)" : "#fff",
+              border: part === 1 ? "1px solid rgba(255,255,255,0.08)" : "none",
+              borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 700,
+              cursor: "pointer", textDecoration: "none",
+              boxShadow: part === 1 ? "none" : "0 4px 20px var(--accent-glow)",
             }}
           >
             View Rankings →

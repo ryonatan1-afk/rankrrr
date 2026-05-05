@@ -2,15 +2,21 @@ import { notFound } from "next/navigation";
 import { getOrCreateSession } from "@/app/actions";
 import VoteClient from "@/components/vote-client";
 import { db } from "@/lib/db";
+import { auth } from "@clerk/nextjs/server";
+import { isBracketComplete } from "@/lib/bracket";
+import type { BracketState } from "@/lib/bracket";
 
 export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ part?: string }>;
 }
 
-export default async function VotePage({ params }: Props) {
+export default async function VotePage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const { part: partParam } = await searchParams;
+  const part = partParam === "2" ? 2 : 1;
 
   const category = await db.category.findUnique({
     where: { slug },
@@ -18,9 +24,21 @@ export default async function VotePage({ params }: Props) {
   });
   if (!category) notFound();
 
-  const { bracketState } = await getOrCreateSession(slug);
+  const { bracketState, session } = await getOrCreateSession(slug, part as 1 | 2);
 
   const itemMap = Object.fromEntries(category.items.map((i) => [i.id, i]));
+
+  // canStartPart2: part 1 bracket is done and part 2 doesn't exist yet
+  let canStartPart2 = false;
+  if (part === 1 && isBracketComplete(bracketState)) {
+    const { userId } = await auth();
+    if (userId) {
+      const part2 = await db.userSession.findUnique({
+        where: { userId_categoryId_part: { userId, categoryId: category.id, part: 2 } },
+      });
+      canStartPart2 = !part2;
+    }
+  }
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-8">
@@ -41,6 +59,11 @@ export default async function VotePage({ params }: Props) {
           <div>
             <span className="mr-2">{category.emoji}</span>
             <span className="font-semibold tracking-tight">{category.name}</span>
+            {part === 2 && (
+              <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 700, color: "#818CF8", letterSpacing: "0.08em" }}>
+                PART 2
+              </span>
+            )}
           </div>
         </div>
 
@@ -49,6 +72,8 @@ export default async function VotePage({ params }: Props) {
           categorySlug={slug}
           initialBracketState={bracketState}
           itemMap={itemMap}
+          part={part}
+          canStartPart2={canStartPart2}
         />
       </div>
     </main>

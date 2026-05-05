@@ -25,7 +25,8 @@ export async function submitVote(
   categoryId: string,
   winnerId: string,
   loserId: string,
-  round: number
+  round: number,
+  part: number = 1
 ) {
   const user = await ensureUser();
 
@@ -38,7 +39,7 @@ export async function submitVote(
 
   // Load and update bracket state
   const session = await db.userSession.findUnique({
-    where: { userId_categoryId: { userId: user.id, categoryId } },
+    where: { userId_categoryId_part: { userId: user.id, categoryId, part } },
   });
 
   if (!session) throw new Error("No session found");
@@ -47,14 +48,12 @@ export async function submitVote(
   const nextState = applyVote(state, winnerId, loserId);
 
   await db.userSession.update({
-    where: { userId_categoryId: { userId: user.id, categoryId } },
+    where: { userId_categoryId_part: { userId: user.id, categoryId, part } },
     data: {
       bracketState: nextState as any,
       currentRound: nextState.currentRound,
     },
   });
-
-  revalidatePath(`/categories/${categoryId}/leaderboard`);
 
   return nextState;
 }
@@ -63,9 +62,9 @@ export async function generateCategoryAction(topic: string): Promise<GeneratedCa
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
   const result = await generateCategory(topic);
-  // Enforce exactly 8 items — pad or trim
-  while (result.items.length < 8) result.items.push(result.items[result.items.length - 1]);
-  result.items = result.items.slice(0, 8);
+  // Enforce exactly 16 items — pad or trim
+  while (result.items.length < 16) result.items.push(result.items[result.items.length - 1]);
+  result.items = result.items.slice(0, 16);
   return result;
 }
 
@@ -102,7 +101,7 @@ export async function createCategoryAction(data: GeneratedCategory): Promise<{ s
   return { slug };
 }
 
-export async function getOrCreateSession(categorySlug: string) {
+export async function getOrCreateSession(categorySlug: string, part: 1 | 2 = 1) {
   const user = await ensureUser();
 
   const category = await db.category.findUnique({
@@ -112,19 +111,55 @@ export async function getOrCreateSession(categorySlug: string) {
   if (!category) throw new Error("Category not found");
 
   let session = await db.userSession.findUnique({
-    where: { userId_categoryId: { userId: user.id, categoryId: category.id } },
+    where: { userId_categoryId_part: { userId: user.id, categoryId: category.id, part } },
   });
 
   if (!session) {
-    const bracket = generateBracket(category.items.map((i: { id: string }) => i.id));
-    session = await db.userSession.create({
-      data: {
-        userId: user.id,
-        categoryId: category.id,
-        currentRound: 1,
-        bracketState: bracket as any,
-      },
-    });
+    let itemIds: string[];
+
+    if (part === 1) {
+      const allIds = category.items.map((i: { id: string }) => i.id);
+      // Fisher-Yates shuffle then take first 8
+      const shuffled = [...allIds];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      itemIds = shuffled.slice(0, 8);
+    } else {
+      // Part 2: use items not in part 1
+      const part1 = await db.userSession.findUnique({
+        where: { userId_categoryId_part: { userId: user.id, categoryId: category.id, part: 1 } },
+      });
+      if (!part1) throw new Error("Complete Part 1 first");
+      const used = new Set(part1.usedItemIds as string[]);
+      itemIds = category.items
+        .map((i: { id: string }) => i.id)
+        .filter((id: string) => !used.has(id))
+        .slice(0, 8);
+      if (itemIds.length < 8) throw new Error("Not enough items for Part 2");
+    }
+
+    const bracket = generateBracket(itemIds);
+    try {
+      session = await db.userSession.create({
+        data: {
+          userId: user.id,
+          categoryId: category.id,
+          part,
+          currentRound: 1,
+          bracketState: bracket as any,
+          usedItemIds: itemIds as any,
+        },
+      });
+    } catch (e: any) {
+      // P2002 = unique constraint — concurrent request already created it
+      if (e?.code !== "P2002") throw e;
+      session = await db.userSession.findUnique({
+        where: { userId_categoryId_part: { userId: user.id, categoryId: category.id, part } },
+      });
+      if (!session) throw e;
+    }
   }
 
   return {
@@ -132,4 +167,17 @@ export async function getOrCreateSession(categorySlug: string) {
     category,
     bracketState: session.bracketState as unknown as BracketState,
   };
+}
+
+export async function resetSessionAction(categorySlug: string): Promise<void> {
+  const user = await ensureUser();
+
+  const category = await db.category.findUnique({ where: { slug: categorySlug } });
+  if (!category) throw new Error("Category not found");
+
+  await db.userSession.deleteMany({
+    where: { userId: user.id, categoryId: category.id },
+  });
+
+  revalidatePath("/categories");
 }

@@ -79,7 +79,7 @@ export default function NewCategoryPage() {
                 Generate with AI
               </h2>
               <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6 }}>
-                Type any topic and Claude will create 8 rankable items for a 1v1 bracket.
+                Type any topic and Claude will create 16 rankable items for a 1v1 bracket.
               </p>
             </div>
 
@@ -177,42 +177,7 @@ export default function NewCategoryPage() {
               </div>
             </div>
 
-            {/* Items grid */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 8,
-              }}
-            >
-              {preview.items.map((item, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 14,
-                    padding: "14px 14px",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 10,
-                    animation: "fadeup 0.3s ease forwards",
-                    animationDelay: `${i * 0.04}s`,
-                    opacity: 0,
-                  }}
-                >
-                  <span style={{ fontSize: 22, flexShrink: 0 }}>{item.emoji}</span>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 650, letterSpacing: "-0.02em" }}>{item.name}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 3, lineHeight: 1.5 }}>
-                      {item.description}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Actions */}
+            {/* Actions — above the fold before the item list */}
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 onClick={handleSave}
@@ -273,6 +238,41 @@ export default function NewCategoryPage() {
                 {error}
               </div>
             )}
+
+            {/* Items grid — scrollable preview below the CTA */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+              }}
+            >
+              {preview.items.map((item, i) => (
+                <div
+                  key={i}
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 14,
+                    padding: "14px 14px",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    animation: "fadeup 0.3s ease forwards",
+                    animationDelay: `${i * 0.04}s`,
+                    opacity: 0,
+                  }}
+                >
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>{item.emoji}</span>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 650, letterSpacing: "-0.02em" }}>{item.name}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 3, lineHeight: 1.5 }}>
+                      {item.description}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

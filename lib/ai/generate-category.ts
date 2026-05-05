@@ -31,15 +31,15 @@ Return ONLY valid JSON in this exact shape, no markdown, no explanation:
   "emoji": "🏆",
   "description": "One sentence description",
   "items": [
-    { "name": "Item Name", "emoji": "🎯", "description": "Short description" }
+    { "name": "Item Name", "emoji": "🎯" }
   ]
 }
 
 Rules:
-- Exactly 8 items — no more, no fewer
+- Exactly 16 items — no more, no fewer
 - Each item must be distinct and rankable
 - Names should be concise (1-4 words)
-- Descriptions should be 1 sentence max`,
+- No item descriptions — name and emoji only`,
       },
     ],
   });

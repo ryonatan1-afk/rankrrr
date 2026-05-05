@@ -101,8 +101,10 @@ model UserSession {
 
   currentRound Int  @default(0)
   bracketState Json // serialized bracket progress
+  part         Int  @default(1)
+  usedItemIds  Json @default("[]")
 
-  @@unique([userId, categoryId])
+  @@unique([userId, categoryId, part])
   @@index([userId])
   @@map("user_sessions")
 }

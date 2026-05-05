@@ -7,12 +7,12 @@ import OnboardingTip from "@/components/onboarding-tip";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const categories = await db.category.findMany({
+  const all = await db.category.findMany({
     where: { status: "ACTIVE" },
     include: { _count: { select: { votes: true } } },
-    orderBy: { createdAt: "asc" },
-    take: 3,
   });
+  // Shuffle and pick 3 — different on every load (page is force-dynamic)
+  const categories = all.sort(() => Math.random() - 0.5).slice(0, 3);
 
   return (
     <main className="flex-1 flex flex-col items-center justify-center px-4 py-16 relative">
