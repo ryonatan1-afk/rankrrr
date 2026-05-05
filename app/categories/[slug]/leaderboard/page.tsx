@@ -83,16 +83,28 @@ export default async function LeaderboardPage({ params }: Props) {
               <span className="font-semibold">{category.name}</span>
             </div>
           </div>
-          <Link
-            href={`/categories/${slug}/vote`}
-            style={{
-              background: "var(--accent)", color: "#fff", borderRadius: 10,
-              padding: "8px 18px", fontSize: 13, fontWeight: 700,
-              boxShadow: "0 4px 16px var(--accent-glow)", textDecoration: "none",
-            }}
-          >
-            Vote →
-          </Link>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Link
+              href={`/categories/${slug}/bracket`}
+              style={{
+                background: "rgba(255,255,255,0.05)", color: "var(--muted)", borderRadius: 10,
+                padding: "8px 14px", fontSize: 13, fontWeight: 600,
+                border: "1px solid rgba(255,255,255,0.08)", textDecoration: "none",
+              }}
+            >
+              My Bracket
+            </Link>
+            <Link
+              href={`/categories/${slug}/vote`}
+              style={{
+                background: "var(--accent)", color: "#fff", borderRadius: 10,
+                padding: "8px 18px", fontSize: 13, fontWeight: 700,
+                boxShadow: "0 4px 16px var(--accent-glow)", textDecoration: "none",
+              }}
+            >
+              Vote →
+            </Link>
+          </div>
         </div>
 
         {/* Stats */}

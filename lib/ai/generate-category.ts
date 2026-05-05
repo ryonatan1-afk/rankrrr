@@ -44,6 +44,7 @@ Rules:
     ],
   });
 
-  const text = message.content[0].type === "text" ? message.content[0].text : "";
+  const raw = message.content[0].type === "text" ? message.content[0].text : "";
+  const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
   return JSON.parse(text) as GeneratedCategory;
 }

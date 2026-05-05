@@ -10,6 +10,7 @@ import {
   getBracketWinner,
   type BracketState,
 } from "@/lib/bracket";
+import { BracketTree } from "@/components/bracket-tree";
 
 interface Item {
   id: string;
@@ -249,21 +250,37 @@ export default function VoteClient({ categoryId, categorySlug, initialBracketSta
 
   if (isComplete && winner) {
     return (
-      <div className="flex flex-col items-center gap-8 py-12 text-center" style={{ animation: "fadeup 0.45s ease forwards" }}>
-        <div style={{
-          width: 96, height: 96, borderRadius: 24,
-          background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 52, boxShadow: "0 8px 40px rgba(52,211,153,0.2)",
-        }}>
-          {winner.emoji}
-        </div>
-        <div>
-          <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.05em", marginBottom: 10 }}>All done!</div>
-          <div style={{ fontSize: 15, color: "rgba(255,255,255,0.45)", maxWidth: 300, lineHeight: 1.6 }}>
-            <strong style={{ color: "#fff" }}>{winner.name}</strong> topped your bracket. See how the crowd voted.
+      <div className="flex flex-col gap-8" style={{ animation: "fadeup 0.45s ease forwards" }}>
+        {/* Header */}
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div style={{
+            width: 72, height: 72, borderRadius: 20,
+            background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 36, boxShadow: "0 8px 40px rgba(52,211,153,0.2)",
+          }}>
+            {winner.emoji}
+          </div>
+          <div>
+            <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 6 }}>All done!</div>
+            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 }}>
+              <strong style={{ color: "#fff" }}>{winner.name}</strong> topped your bracket.
+            </div>
           </div>
         </div>
+
+        {/* Bracket tree */}
+        <div style={{
+          background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)",
+          borderRadius: 16, padding: "20px 16px",
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: 16 }}>
+            Your bracket
+          </div>
+          <BracketTree state={state} itemMap={itemMap} />
+        </div>
+
+        {/* Actions */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
           <a
             href={`/categories/${categorySlug}/leaderboard`}
