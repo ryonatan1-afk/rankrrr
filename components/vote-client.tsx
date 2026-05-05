@@ -274,18 +274,7 @@ export default function VoteClient({ categoryId, categorySlug, initialBracketSta
           </div>
         </div>
 
-        {/* Bracket tree */}
-        <div style={{
-          background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: 16, padding: "20px 16px",
-        }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: 16 }}>
-            Your bracket
-          </div>
-          <BracketTree state={state} itemMap={itemMap} />
-        </div>
-
-        {/* Actions */}
+        {/* Actions — above the bracket so they're always visible */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
           {part === 1 && (
             <a
@@ -323,6 +312,17 @@ export default function VoteClient({ categoryId, categorySlug, initialBracketSta
           >
             ← Categories
           </button>
+        </div>
+
+        {/* Bracket tree — scrollable below the fold */}
+        <div style={{
+          background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)",
+          borderRadius: 16, padding: "20px 16px",
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: 16 }}>
+            Your bracket
+          </div>
+          <BracketTree state={state} itemMap={itemMap} />
         </div>
       </div>
     );
