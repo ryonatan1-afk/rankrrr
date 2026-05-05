@@ -19,10 +19,13 @@ export default function MatrixRain() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const canvasOrNull = canvasRef.current;
+    if (!canvasOrNull) return;
+    const ctxOrNull = canvasOrNull.getContext("2d");
+    if (!ctxOrNull) return;
+    // New const bindings so TypeScript tracks non-null type inside closures
+    const canvas = canvasOrNull;
+    const ctx = ctxOrNull;
 
     let cols: Column[] = [];
 
