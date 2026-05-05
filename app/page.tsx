@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { CategoryLink } from "@/components/category-link";
+import MatrixRain from "@/components/matrix-rain";
+import OnboardingTip from "@/components/onboarding-tip";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +16,7 @@ export default async function Home() {
 
   return (
     <main className="flex-1 flex flex-col items-center justify-center px-4 py-16 relative">
-      {/* Animated background orbs */}
-      <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
-        <div style={{ position: "absolute", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)", top: "-100px", left: "-100px", animation: "orb1 18s ease-in-out infinite", filter: "blur(40px)" }} />
-        <div style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 70%)", bottom: "-80px", right: "-80px", animation: "orb2 22s ease-in-out infinite", filter: "blur(50px)" }} />
-        <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(52,211,153,0.08) 0%, transparent 70%)", top: "40%", right: "20%", animation: "orb3 28s ease-in-out infinite", filter: "blur(60px)" }} />
-      </div>
+      <MatrixRain />
 
       <div className="relative z-10 w-full max-w-lg flex flex-col items-center gap-12">
         {/* Hero */}
@@ -45,23 +42,7 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* Features */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, width: "100%" }}>
-          {[
-            { icon: "⚔️", title: "1v1 Brackets", desc: "7 votes, clean tournament." },
-            { icon: "📊", title: "Crowd Rankings", desc: "Aggregate of all voters." },
-            { icon: "✨", title: "AI Categories", desc: "Generate any topic instantly." },
-          ].map((f) => (
-            <div key={f.title} style={{
-              background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
-              borderRadius: 16, padding: "16px 14px",
-            }}>
-              <div style={{ fontSize: 22, marginBottom: 8 }}>{f.icon}</div>
-              <div style={{ fontSize: 12.5, fontWeight: 700 }}>{f.title}</div>
-              <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.35)", marginTop: 3 }}>{f.desc}</div>
-            </div>
-          ))}
-        </div>
+        <OnboardingTip />
 
         {/* Category list */}
         <div style={{
