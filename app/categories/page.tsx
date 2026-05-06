@@ -8,22 +8,20 @@ export const dynamic = "force-dynamic";
 export default async function CategoriesPage() {
   const { userId } = await auth();
 
-  const categories = await db.category.findMany({
-    where: { status: "ACTIVE" },
-    include: {
-      items: { select: { id: true }, orderBy: { createdAt: "asc" } },
-      _count: { select: { votes: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  // Load user's sessions for progress
-  const sessions = userId
-    ? await db.userSession.findMany({
-        where: { userId },
-        select: { categoryId: true, currentRound: true, bracketState: true },
-      })
-    : [];
+  // Run both queries in parallel
+  const [categories, sessions] = await Promise.all([
+    db.category.findMany({
+      where: { status: "ACTIVE" },
+      include: { _count: { select: { votes: true, items: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    userId
+      ? db.userSession.findMany({
+          where: { userId },
+          select: { categoryId: true, part: true, bracketState: true },
+        })
+      : Promise.resolve([]),
+  ]);
 
   const sessionMap = new Map(sessions.map((s) => [s.categoryId, s]));
 
@@ -98,7 +96,7 @@ export default async function CategoriesPage() {
                         ? "🎉 Complete"
                         : done > 0
                         ? `${done} / ${totalMatchups} votes`
-                        : `${cat.items.length} items · ${cat._count.votes} crowd votes`}
+                        : `${cat._count.items} items · ${cat._count.votes} crowd votes`}
                     </div>
                   </div>
                 </div>

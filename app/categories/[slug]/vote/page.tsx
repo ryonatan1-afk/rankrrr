@@ -70,6 +70,7 @@ export default async function VotePage({ params, searchParams }: Props) {
         <VoteClient
           categoryId={category.id}
           categorySlug={slug}
+          categoryName={category.name}
           initialBracketState={bracketState}
           itemMap={itemMap}
           part={part}

@@ -23,6 +23,7 @@ interface Item {
 interface Props {
   categoryId: string;
   categorySlug: string;
+  categoryName: string;
   initialBracketState: BracketState;
   itemMap: Record<string, Item>;
   part: number;
@@ -117,17 +118,19 @@ function MatchupCard({
         }} />
       )}
 
-      {/* Winner badge */}
-      <div style={{
-        position: "absolute", top: 12, right: 14,
-        background: isSelected ? "rgba(52,211,153,0.15)" : "rgba(255,255,255,0.05)",
-        border: `1px solid ${isSelected ? "rgba(52,211,153,0.4)" : "rgba(255,255,255,0.08)"}`,
-        color: isSelected ? "#34D399" : "rgba(255,255,255,0.3)",
-        fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
-        padding: "3px 9px", borderRadius: 99,
-      }}>
-        {isSelected ? "✓ Winner" : "vs"}
-      </div>
+      {/* Winner badge — only shown after selection */}
+      {isSelected && (
+        <div style={{
+          position: "absolute", top: 12, right: 14,
+          background: "rgba(52,211,153,0.15)",
+          border: "1px solid rgba(52,211,153,0.4)",
+          color: "#34D399",
+          fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+          padding: "3px 9px", borderRadius: 99,
+        }}>
+          ✓ Winner
+        </div>
+      )}
 
       {/* Emoji */}
       <div style={{
@@ -176,13 +179,14 @@ function MatchupCard({
   );
 }
 
-export default function VoteClient({ categoryId, categorySlug, initialBracketState, itemMap, part, canStartPart2 }: Props) {
+export default function VoteClient({ categoryId, categorySlug, categoryName, initialBracketState, itemMap, part, canStartPart2 }: Props) {
   const router = useRouter();
   const [state, setState] = useState<BracketState>(initialBracketState);
   const [animPhase, setAnimPhase] = useState<"idle" | "selected" | "transitioning">("idle");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confetti, setConfetti] = useState<Array<{ id: number; x: number; y: number; color: string; angle: number; dist: number }>>([]);
   const [visible, setVisible] = useState(true);
+  const [copied, setCopied] = useState(false);
   const swipeStartX = useRef<number | null>(null);
 
   const currentMatchup = getCurrentMatchup(state);
@@ -273,6 +277,51 @@ export default function VoteClient({ categoryId, categorySlug, initialBracketSta
             </div>
           </div>
         </div>
+
+        {/* Share */}
+        {(() => {
+          const shareText = `${winner.name} tops ${categoryName} — do you agree?`;
+          const shareUrl = `https://rankrrr.vercel.app/categories/${categorySlug}/vote`;
+          const fullText = `${shareText} ${shareUrl}`;
+          return (
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+              <button
+                onClick={() => { navigator.clipboard.writeText(fullText); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                style={{
+                  fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8, cursor: "pointer",
+                  background: copied ? "rgba(52,211,153,0.1)" : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${copied ? "rgba(52,211,153,0.3)" : "rgba(255,255,255,0.08)"}`,
+                  color: copied ? "#34D399" : "rgba(255,255,255,0.45)",
+                  transition: "all 0.15s",
+                }}
+              >
+                {copied ? "✓ Copied" : "Copy link"}
+              </button>
+              <a
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{
+                  fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8,
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.45)", textDecoration: "none",
+                }}
+              >
+                Share on X
+              </a>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(fullText)}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{
+                  fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8,
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.45)", textDecoration: "none",
+                }}
+              >
+                WhatsApp
+              </a>
+            </div>
+          );
+        })()}
 
         {/* Actions — above the bracket so they're always visible */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>

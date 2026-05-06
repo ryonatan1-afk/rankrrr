@@ -3,14 +3,18 @@ import { db } from "@/lib/db";
 import { CategoryLink } from "@/components/category-link";
 import MatrixRain from "@/components/matrix-rain";
 import OnboardingTip from "@/components/onboarding-tip";
+import { VoteCounter } from "@/components/vote-counter";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const all = await db.category.findMany({
-    where: { status: "ACTIVE" },
-    include: { _count: { select: { votes: true } } },
-  });
+  const [all, totalVotes] = await Promise.all([
+    db.category.findMany({
+      where: { status: "ACTIVE" },
+      include: { _count: { select: { votes: true } } },
+    }),
+    db.vote.count(),
+  ]);
   // Shuffle and pick 3 — different on every load (page is force-dynamic)
   const categories = all.sort(() => Math.random() - 0.5).slice(0, 3);
 
@@ -85,6 +89,8 @@ export default async function Home() {
         <Link href="/categories" style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none" }}>
           Browse all categories →
         </Link>
+
+        <VoteCounter total={totalVotes} />
       </div>
     </main>
   );
