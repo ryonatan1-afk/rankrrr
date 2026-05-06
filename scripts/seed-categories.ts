@@ -43,7 +43,7 @@ Return ONLY valid JSON in this exact shape, no markdown, no explanation:
 
 Rules:
 - Exactly 16 items — no more, no fewer
-- Each item must be distinct and highly rankable
+- Each item must be a specific, named real thing — a person, product, company, film, song, place, etc. Never return a type or sub-category of things (e.g. for "startups in Israel" → "Waze" not "Navigation Apps"; for "pizza toppings" → "Pepperoni" not "Meat toppings")
 - Names should be concise (1-4 words)
 - No item descriptions — name and emoji only
 - Pick the most iconic, universally recognised options people will have strong opinions about`,

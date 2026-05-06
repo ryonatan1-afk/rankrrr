@@ -79,7 +79,7 @@ export default function NewCategoryPage() {
                 Generate with AI
               </h2>
               <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6 }}>
-                Type any topic and Claude will create 16 rankable items for a 1v1 bracket.
+                Type any topic — the more specific, the better results. Claude builds 16 items for a 1v1 bracket.
               </p>
             </div>
 
@@ -89,7 +89,7 @@ export default function NewCategoryPage() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-                placeholder="e.g. 90s video games, pasta shapes, dog breeds…"
+                placeholder="Be specific — 'early-stage Israeli startups' beats 'startups'"
                 disabled={phase === "generating"}
                 style={{
                   width: "100%",
