@@ -92,7 +92,7 @@ function MatchupCard({
         background: bg,
         border: `1px solid ${border}`,
         borderRadius: 22,
-        padding: "28px 22px 24px",
+        padding: "clamp(16px, 4vw, 28px) clamp(14px, 3vw, 22px) clamp(14px, 4vw, 24px)",
         cursor: isIdle ? "pointer" : "default",
         transform: `scale(${isSelected ? 1.04 : isLoser ? 0.95 : hovered && isIdle ? 1.025 : 1})`,
         opacity: isLoser ? 0.35 : 1,
@@ -323,30 +323,49 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           );
         })()}
 
-        {/* Actions — above the bracket so they're always visible */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-          {part === 1 && (
+        {/* Part 2 teaser */}
+        {part === 1 && (
+          <div style={{
+            width: "100%",
+            background: "linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.08))",
+            border: "1px solid rgba(99,102,241,0.25)",
+            borderRadius: 16, padding: "18px 20px",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 12, textAlign: "center",
+          }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#818CF8", letterSpacing: "0.04em", marginBottom: 4 }}>
+                ⚡ Hold on — you're only halfway there
+              </div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 }}>
+                8 more contenders are waiting. Your final ranking isn't complete until you've seen them all.
+              </div>
+            </div>
             <a
               href={`/categories/${categorySlug}/vote?part=2`}
               style={{
                 background: "linear-gradient(135deg, #6366F1, #8B5CF6)", color: "#fff",
-                border: "none", borderRadius: 12,
-                padding: "12px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                border: "none", borderRadius: 12, width: "100%", textAlign: "center",
+                padding: "13px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer",
                 boxShadow: "0 4px 20px rgba(99,102,241,0.4)", textDecoration: "none",
+                display: "block",
               }}
             >
-              ⚔️ Rank 8 more challengers →
+              Rank the next 8 →
             </a>
-          )}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
           <a
             href={`/categories/${categorySlug}/leaderboard`}
             style={{
-              background: part === 1 ? "rgba(255,255,255,0.05)" : "var(--accent)",
-              color: part === 1 ? "rgba(255,255,255,0.5)" : "#fff",
-              border: part === 1 ? "1px solid rgba(255,255,255,0.08)" : "none",
+              background: part === 2 ? "var(--accent)" : "rgba(255,255,255,0.05)",
+              color: part === 2 ? "#fff" : "rgba(255,255,255,0.5)",
+              border: part === 2 ? "none" : "1px solid rgba(255,255,255,0.08)",
               borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 700,
               cursor: "pointer", textDecoration: "none",
-              boxShadow: part === 1 ? "none" : "0 4px 20px var(--accent-glow)",
+              boxShadow: part === 2 ? "0 4px 20px var(--accent-glow)" : "none",
             }}
           >
             View Rankings →
@@ -411,30 +430,42 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
       </div>
 
       {/* Cards */}
+      <style>{`
+        .cards-row { display: flex; flex-direction: row; gap: 16px; align-items: stretch; }
+        .cards-vs { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        @media (max-width: 480px) {
+          .cards-row { flex-direction: column; gap: 12px; }
+          .cards-vs { flex-direction: row; gap: 12px; }
+          .cards-vs::before, .cards-vs::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.07); }
+        }
+      `}</style>
       <div
+        className="cards-row"
         style={{
-          display: "flex", gap: 16, alignItems: "stretch",
           opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(10px)",
           transition: "opacity 0.22s ease, transform 0.22s ease",
         }}
       >
         <MatchupCard
+          key={itemA.id}
           item={itemA}
           isSelected={selectedId === itemA.id}
           isLoser={selectedId !== null && selectedId !== itemA.id}
           isIdle={animPhase === "idle"}
           onSelect={(id, cx, cy) => doVote(id, itemB.id, cx, cy)}
         />
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <div className="cards-vs">
           <div style={{
             width: 40, height: 40, borderRadius: "50%",
             background: "rgba(255,255,255,0.04)",
             border: "1px solid rgba(255,255,255,0.1)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em",
+            flexShrink: 0,
           }}>VS</div>
         </div>
         <MatchupCard
+          key={itemB.id}
           item={itemB}
           isSelected={selectedId === itemB.id}
           isLoser={selectedId !== null && selectedId !== itemB.id}

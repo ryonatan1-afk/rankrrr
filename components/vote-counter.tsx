@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Fragment } from "react";
 
 export function VoteCounter({ total }: { total: number }) {
   const [display, setDisplay] = useState(0);
@@ -72,9 +72,9 @@ export function VoteCounter({ total }: { total: number }) {
         {/* Digit display */}
         <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
           {digits.map((d, i) => (
-            <>
+            <Fragment key={i}>
               {i === 3 && (
-                <span key="comma" style={{
+                <span style={{
                   color: "rgba(0,255,65,0.35)", fontSize: 22,
                   fontFamily: "monospace", marginBottom: 4, lineHeight: 1,
                 }}>
@@ -82,7 +82,6 @@ export function VoteCounter({ total }: { total: number }) {
                 </span>
               )}
               <div
-                key={i}
                 className="retro-digit"
                 style={{
                   animationDelay: `${i * 0.4}s`,
@@ -102,7 +101,7 @@ export function VoteCounter({ total }: { total: number }) {
               >
                 {d}
               </div>
-            </>
+            </Fragment>
           ))}
         </div>
 
