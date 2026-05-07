@@ -18,6 +18,7 @@ interface Item {
   emoji: string | null;
   color: string | null;
   description: string | null;
+  imageUrl: string | null;
 }
 
 interface CrowdItem {
@@ -73,8 +74,6 @@ function MatchupCard({
   isSelected: boolean;
   isLoser: boolean;
   isIdle: boolean;
-  showKeyHint: boolean;
-  keyHint: "←" | "→";
   onSelect: (id: string, cx: number, cy: number) => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -89,7 +88,6 @@ function MatchupCard({
     onSelect(item.id, e.clientX, e.clientY);
   };
 
-  const color = item.color ?? "#6366F1";
   const border = isSelected ? "#34D399" : isLoser ? "rgba(255,255,255,0.04)" : hovered && isIdle ? "rgba(99,102,241,0.7)" : "rgba(255,255,255,0.08)";
   const bg = isSelected ? "rgba(52,211,153,0.05)" : hovered && isIdle ? "rgba(99,102,241,0.07)" : "rgba(255,255,255,0.03)";
   const shadow = isSelected
@@ -117,7 +115,6 @@ function MatchupCard({
         backdropFilter: "blur(12px)",
         transition: "transform 0.25s cubic-bezier(.34,1.56,.64,1), opacity 0.28s ease, box-shadow 0.22s ease, border-color 0.18s ease, background 0.18s ease",
         position: "relative",
-        overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -149,35 +146,21 @@ function MatchupCard({
         </div>
       )}
 
-      {/* Keyboard hint overlay — fades after first vote */}
-      {showKeyHint && isIdle && !isSelected && !isLoser && (
-        <div style={{
-          position: "absolute", bottom: 10, left: "50%", transform: "translateX(-50%)",
-          background: "rgba(99,102,241,0.12)",
-          border: "1px solid rgba(99,102,241,0.2)",
-          borderRadius: 8, padding: "4px 12px",
-          fontSize: 18, color: "rgba(255,255,255,0.3)",
-          pointerEvents: "none",
-          whiteSpace: "nowrap",
-        }}>
-          {keyHint}
-        </div>
-      )}
 
-      {/* Color avatar with initials */}
+      {/* Image slot — always same size so both cards stay symmetric */}
       <div style={{
-        width: 88, height: 88, borderRadius: 20, flexShrink: 0,
-        background: `linear-gradient(135deg, ${color}44, ${color}18)`,
-        border: `1.5px solid ${color}44`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 26, fontWeight: 800, color: color,
-        letterSpacing: "-0.03em",
-        fontFamily: "inherit",
-        textShadow: `0 0 24px ${color}66`,
-        transition: "transform 0.25s cubic-bezier(.34,1.56,.64,1)",
-        transform: hovered && isIdle ? "scale(1.1) rotate(-4deg)" : "scale(1) rotate(0deg)",
+        width: 88, height: 88, borderRadius: 16, overflow: "hidden", flexShrink: 0,
+        background: item.imageUrl ? "transparent" : "rgba(255,255,255,0.04)",
+        border: item.imageUrl ? "none" : "1px solid rgba(255,255,255,0.07)",
+        boxShadow: item.imageUrl ? "0 4px 20px rgba(0,0,0,0.4)" : "none",
       }}>
-        {getInitials(item.name)}
+        {item.imageUrl && (
+          <img
+            src={item.imageUrl}
+            alt={item.name}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        )}
       </div>
 
       <div style={{ textAlign: "center" }}>
@@ -186,30 +169,18 @@ function MatchupCard({
         </div>
       </div>
 
-      {isIdle && (
-        <div style={{
-          background: hovered ? "rgba(99,102,241,0.9)" : "rgba(255,255,255,0.05)",
-          color: hovered ? "#fff" : "rgba(255,255,255,0.4)",
-          border: `1px solid ${hovered ? "transparent" : "rgba(255,255,255,0.08)"}`,
-          borderRadius: 12, padding: "8px 22px",
-          fontSize: 13, fontWeight: 600,
-          transition: "all 0.18s ease", pointerEvents: "none",
-          boxShadow: hovered ? "0 4px 20px rgba(99,102,241,0.4)" : "none",
-        }}>
-          Choose →
-        </div>
-      )}
-
-      {ripple && (
-        <span style={{
-          position: "absolute", left: ripple.x, top: ripple.y,
-          width: 8, height: 8, borderRadius: "50%",
-          background: "rgba(99,102,241,0.4)",
-          transform: "translate(-50%, -50%) scale(0)",
-          animation: "ripple 0.55s ease-out forwards",
-          pointerEvents: "none", zIndex: 10,
-        }} />
-      )}
+      {/* Ripple clip layer */}
+      <div style={{ position: "absolute", inset: 0, borderRadius: 22, overflow: "hidden", pointerEvents: "none" }}>
+        {ripple && (
+          <span style={{
+            position: "absolute", left: ripple.x, top: ripple.y,
+            width: 8, height: 8, borderRadius: "50%",
+            background: "rgba(99,102,241,0.4)",
+            transform: "translate(-50%, -50%) scale(0)",
+            animation: "ripple 0.55s ease-out forwards",
+          }} />
+        )}
+      </div>
     </div>
   );
 }
@@ -221,7 +192,6 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confetti, setConfetti] = useState<Array<{ id: number; x: number; y: number; color: string; angle: number; dist: number }>>([]);
   const [visible, setVisible] = useState(true);
-  const [hasVotedOnce, setHasVotedOnce] = useState(false);
   const [showHowItWorks] = useState(() => {
     const initialDone = initialBracketState.rounds
       .reduce((s, r) => s + r.matchups.filter((m) => m.winnerId !== null).length, 0);
@@ -238,7 +208,6 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     if (animPhase !== "idle") return;
     setSelectedId(winnerId);
     setAnimPhase("selected");
-    setHasVotedOnce(true);
 
     const particles = Array.from({ length: 16 }, (_, i) => ({
       id: i,
@@ -478,7 +447,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
       className="flex flex-col gap-6"
     >
       {/* How it works — shown only on very first matchup of bracket 1 */}
-      {showHowItWorks && !hasVotedOnce && (
+      {showHowItWorks && (
         <div style={{
           background: "rgba(99,102,241,0.07)",
           border: "1px solid rgba(99,102,241,0.18)",
@@ -537,8 +506,6 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           isSelected={selectedId === itemA.id}
           isLoser={selectedId !== null && selectedId !== itemA.id}
           isIdle={animPhase === "idle"}
-          showKeyHint={!hasVotedOnce}
-          keyHint="←"
           onSelect={(id, cx, cy) => doVote(id, itemB.id, cx, cy)}
         />
         <div className="cards-vs">
@@ -557,8 +524,6 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           isSelected={selectedId === itemB.id}
           isLoser={selectedId !== null && selectedId !== itemB.id}
           isIdle={animPhase === "idle"}
-          showKeyHint={!hasVotedOnce}
-          keyHint="→"
           onSelect={(id, cx, cy) => doVote(id, itemA.id, cx, cy)}
         />
       </div>

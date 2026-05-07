@@ -2,9 +2,11 @@
 
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { applyVote, generateBracket, type BracketState } from "@/lib/bracket";
 import { generateCategory, type GeneratedCategory } from "@/lib/ai/generate-category";
+import { fetchWikipediaThumbnail } from "@/lib/wikipedia";
 
 const ITEM_COLORS = ["#6366F1", "#EC4899", "#F59E0B", "#10B981", "#F97316", "#8B5CF6", "#06B6D4", "#EF4444"];
 
@@ -79,7 +81,7 @@ export async function createCategoryAction(data: GeneratedCategory): Promise<{ s
   const existing = await db.category.findUnique({ where: { slug: baseSlug } });
   const slug = existing ? `${baseSlug}-${Date.now()}` : baseSlug;
 
-  await db.category.create({
+  const category = await db.category.create({
     data: {
       slug,
       name: data.name,
@@ -96,6 +98,18 @@ export async function createCategoryAction(data: GeneratedCategory): Promise<{ s
         })),
       },
     },
+    include: { items: true },
+  });
+
+  after(async () => {
+    await Promise.all(
+      category.items.map(async (item) => {
+        const imageUrl = await fetchWikipediaThumbnail(item.name, data.name);
+        if (imageUrl) {
+          await db.item.update({ where: { id: item.id }, data: { imageUrl } });
+        }
+      })
+    );
   });
 
   return { slug };
