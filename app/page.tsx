@@ -76,15 +76,11 @@ export default async function Home() {
               Rankr
             </h1>
             <p style={{ fontSize: 17, color: "rgba(255,255,255,0.45)", marginTop: 14, lineHeight: 1.6 }}>
-              Pick your favourite in 1v1 matchups.<br />See what the crowd really thinks.
+              Rank anything. Settle everything.
             </p>
-            {trendingStat ? (
+            {trendingStat && (
               <p style={{ fontSize: 13, color: "rgba(255,255,255,0.28)", marginTop: 10, fontStyle: "italic" }}>
                 Right now: {trendingStat}
-              </p>
-            ) : (
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.28)", marginTop: 10, fontStyle: "italic" }}>
-                Start voting to see what the crowd thinks
               </p>
             )}
           </div>

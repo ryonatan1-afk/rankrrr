@@ -25,13 +25,11 @@ export function CategoryLink({ href, name, voteCount }: CategoryLinkProps) {
         textDecoration: "none", transition: "all 0.15s ease",
       }}
     >
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.02em" }}>{name}</div>
-        <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>
-          {voteCount} votes
-        </div>
+      <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "-0.02em" }}>{name}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>{voteCount} votes</span>
+        <span style={{ fontSize: 15, color: "rgba(255,255,255,0.25)" }}>→</span>
       </div>
-      <span style={{ fontSize: 15, color: "rgba(255,255,255,0.25)" }}>→</span>
     </Link>
   );
 }
