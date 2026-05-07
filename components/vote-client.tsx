@@ -20,6 +20,12 @@ interface Item {
   description: string | null;
 }
 
+interface CrowdItem {
+  itemId: string;
+  winRate: number;
+  totalVotes: number;
+}
+
 interface Props {
   categoryId: string;
   categorySlug: string;
@@ -28,6 +34,13 @@ interface Props {
   itemMap: Record<string, Item>;
   part: number;
   canStartPart2: boolean;
+  crowdData?: CrowdItem[];
+}
+
+function getInitials(name: string): string {
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return name.slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
 function ConfettiParticle({ x, y, color, angle, dist }: { x: number; y: number; color: string; angle: number; dist: number }) {
@@ -52,12 +65,16 @@ function MatchupCard({
   isSelected,
   isLoser,
   isIdle,
+  showKeyHint,
+  keyHint,
   onSelect,
 }: {
   item: Item;
   isSelected: boolean;
   isLoser: boolean;
   isIdle: boolean;
+  showKeyHint: boolean;
+  keyHint: "←" | "→";
   onSelect: (id: string, cx: number, cy: number) => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -118,7 +135,7 @@ function MatchupCard({
         }} />
       )}
 
-      {/* Winner badge — only shown after selection */}
+      {/* Winner badge */}
       {isSelected && (
         <div style={{
           position: "absolute", top: 12, right: 14,
@@ -132,17 +149,35 @@ function MatchupCard({
         </div>
       )}
 
-      {/* Emoji */}
+      {/* Keyboard hint overlay — fades after first vote */}
+      {showKeyHint && isIdle && !isSelected && !isLoser && (
+        <div style={{
+          position: "absolute", bottom: 10, left: "50%", transform: "translateX(-50%)",
+          background: "rgba(99,102,241,0.12)",
+          border: "1px solid rgba(99,102,241,0.2)",
+          borderRadius: 8, padding: "4px 12px",
+          fontSize: 18, color: "rgba(255,255,255,0.3)",
+          pointerEvents: "none",
+          whiteSpace: "nowrap",
+        }}>
+          {keyHint}
+        </div>
+      )}
+
+      {/* Color avatar with initials */}
       <div style={{
         width: 88, height: 88, borderRadius: 20, flexShrink: 0,
-        background: `linear-gradient(135deg, ${color}33, ${color}11)`,
+        background: `linear-gradient(135deg, ${color}44, ${color}18)`,
         border: `1.5px solid ${color}44`,
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 40,
+        fontSize: 26, fontWeight: 800, color: color,
+        letterSpacing: "-0.03em",
+        fontFamily: "inherit",
+        textShadow: `0 0 24px ${color}66`,
         transition: "transform 0.25s cubic-bezier(.34,1.56,.64,1)",
         transform: hovered && isIdle ? "scale(1.1) rotate(-4deg)" : "scale(1) rotate(0deg)",
       }}>
-        {item.emoji}
+        {getInitials(item.name)}
       </div>
 
       <div style={{ textAlign: "center" }}>
@@ -179,14 +214,19 @@ function MatchupCard({
   );
 }
 
-export default function VoteClient({ categoryId, categorySlug, categoryName, initialBracketState, itemMap, part, canStartPart2 }: Props) {
+export default function VoteClient({ categoryId, categorySlug, categoryName, initialBracketState, itemMap, part, crowdData }: Props) {
   const router = useRouter();
   const [state, setState] = useState<BracketState>(initialBracketState);
   const [animPhase, setAnimPhase] = useState<"idle" | "selected" | "transitioning">("idle");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confetti, setConfetti] = useState<Array<{ id: number; x: number; y: number; color: string; angle: number; dist: number }>>([]);
   const [visible, setVisible] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [hasVotedOnce, setHasVotedOnce] = useState(false);
+  const [showHowItWorks] = useState(() => {
+    const initialDone = initialBracketState.rounds
+      .reduce((s, r) => s + r.matchups.filter((m) => m.winnerId !== null).length, 0);
+    return initialDone === 0 && part === 1;
+  });
   const swipeStartX = useRef<number | null>(null);
 
   const currentMatchup = getCurrentMatchup(state);
@@ -198,8 +238,8 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     if (animPhase !== "idle") return;
     setSelectedId(winnerId);
     setAnimPhase("selected");
+    setHasVotedOnce(true);
 
-    // Confetti
     const particles = Array.from({ length: 16 }, (_, i) => ({
       id: i,
       x: cx ?? window.innerWidth / 2,
@@ -211,16 +251,12 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     setConfetti(particles);
     setTimeout(() => setConfetti([]), 800);
 
-    // Fire server action immediately — runs in parallel with the animation
     const votePromise = submitVote(categoryId, winnerId, loserId, state.currentRound, part);
-
-    // Fade cards out after brief "selected" flash
     const FADE_OUT_DELAY = 300;
-    const MIN_BLANK_MS = 120; // minimum time cards stay hidden before new ones appear
+    const MIN_BLANK_MS = 120;
 
     setTimeout(() => setVisible(false), FADE_OUT_DELAY);
 
-    // Wait for both the fade-out to finish AND the server to respond
     const [nextState] = await Promise.all([
       votePromise,
       new Promise<void>(resolve => setTimeout(resolve, FADE_OUT_DELAY + MIN_BLANK_MS)),
@@ -232,7 +268,6 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     setVisible(true);
   }, [animPhase, categoryId, state.currentRound, part]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (animPhase !== "idle" || !currentMatchup) return;
@@ -243,7 +278,6 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     return () => window.removeEventListener("keydown", handler);
   }, [animPhase, currentMatchup, doVote]);
 
-  // Touch swipe
   const handleTouchStart = (e: React.TouchEvent) => { swipeStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (swipeStartX.current === null || !currentMatchup || animPhase !== "idle") return;
@@ -257,132 +291,167 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const roundLabels = ["Quarter-finals", "Semi-finals", "Final"];
 
+  const currentRoundMatchups = state.rounds[state.currentRound - 1]?.matchups ?? [];
+  const completedInRound = currentRoundMatchups.filter((m) => m.winnerId !== null).length;
+  const matchInRound = completedInRound + 1;
+  const totalInRound = currentRoundMatchups.length;
+  const bracketLabel = `Bracket ${part} of 2`;
+
   if (isComplete && winner) {
+    const isLastPart = part === 2;
+    const winnerCrowdRank = crowdData ? crowdData.findIndex((cd) => cd.itemId === winner.id) + 1 : 0;
+    const crowdTop = crowdData && crowdData.length > 0 ? itemMap[crowdData[0].itemId] : null;
+    const crowdAgreed = crowdData && crowdData.length > 0 && crowdData[0].itemId === winner.id;
+    const shareText = `I picked ${winner.name} as the best in ${categoryName} — what's yours?`;
+    const shareUrl = `https://rankrrr.vercel.app/categories/${categorySlug}/vote`;
+
     return (
       <div className="flex flex-col gap-8" style={{ animation: "fadeup 0.45s ease forwards" }}>
-        {/* Header */}
+        {/* Completion header */}
         <div className="flex flex-col items-center gap-4 text-center">
           <div style={{
             width: 72, height: 72, borderRadius: 20,
-            background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)",
+            background: isLastPart ? "rgba(52,211,153,0.1)" : "rgba(99,102,241,0.1)",
+            border: `1px solid ${isLastPart ? "rgba(52,211,153,0.3)" : "rgba(99,102,241,0.3)"}`,
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 36, boxShadow: "0 8px 40px rgba(52,211,153,0.2)",
+            fontSize: 24, fontWeight: 800,
+            color: isLastPart ? "#34D399" : "#818CF8",
+            boxShadow: isLastPart ? "0 8px 40px rgba(52,211,153,0.2)" : "0 8px 40px rgba(99,102,241,0.2)",
           }}>
-            {winner.emoji}
+            {getInitials(winner.name)}
           </div>
           <div>
-            <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 6 }}>All done!</div>
+            <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 6 }}>
+              {isLastPart ? "All done!" : "Bracket 1 complete"}
+            </div>
             <div style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 }}>
-              <strong style={{ color: "#fff" }}>{winner.name}</strong> topped your bracket.
+              {isLastPart ? (
+                <><strong style={{ color: "#fff" }}>{winner.name}</strong> topped your bracket.</>
+              ) : (
+                <>Top of Bracket 1: <strong style={{ color: "#fff" }}>{winner.name}</strong></>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Share */}
-        {(() => {
-          const shareText = `${winner.name} tops ${categoryName} — do you agree?`;
-          const shareUrl = `https://rankrrr.vercel.app/categories/${categorySlug}/vote`;
-          const fullText = `${shareText} ${shareUrl}`;
-          return (
-            <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-              <button
-                onClick={() => { navigator.clipboard.writeText(fullText); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-                style={{
-                  fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8, cursor: "pointer",
-                  background: copied ? "rgba(52,211,153,0.1)" : "rgba(255,255,255,0.05)",
-                  border: `1px solid ${copied ? "rgba(52,211,153,0.3)" : "rgba(255,255,255,0.08)"}`,
-                  color: copied ? "#34D399" : "rgba(255,255,255,0.45)",
-                  transition: "all 0.15s",
-                }}
-              >
-                {copied ? "✓ Copied" : "Copy link"}
-              </button>
-              <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}`}
-                target="_blank" rel="noopener noreferrer"
-                style={{
-                  fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8,
-                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-                  color: "rgba(255,255,255,0.45)", textDecoration: "none",
-                }}
-              >
-                Share on X
-              </a>
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(fullText)}`}
-                target="_blank" rel="noopener noreferrer"
-                style={{
-                  fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8,
-                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-                  color: "rgba(255,255,255,0.45)", textDecoration: "none",
-                }}
-              >
-                WhatsApp
-              </a>
-            </div>
-          );
-        })()}
-
-        {/* Part 2 teaser */}
-        {part === 1 && (
-          <div style={{
-            width: "100%",
-            background: "linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.08))",
-            border: "1px solid rgba(99,102,241,0.25)",
-            borderRadius: 16, padding: "18px 20px",
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 12, textAlign: "center",
-          }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#818CF8", letterSpacing: "0.04em", marginBottom: 4 }}>
-                ⚡ Hold on — you're only halfway there
-              </div>
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 }}>
-                8 more contenders are waiting. Your final ranking isn't complete until you've seen them all.
-              </div>
-            </div>
+        {/* Continue to Bracket 2 — shown only after Bracket 1 */}
+        {!isLastPart && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <a
               href={`/categories/${categorySlug}/vote?part=2`}
               style={{
                 background: "linear-gradient(135deg, #6366F1, #8B5CF6)", color: "#fff",
-                border: "none", borderRadius: 12, width: "100%", textAlign: "center",
-                padding: "13px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer",
-                boxShadow: "0 4px 20px rgba(99,102,241,0.4)", textDecoration: "none",
-                display: "block",
+                borderRadius: 14, width: "100%", textAlign: "center",
+                padding: "15px 28px", fontSize: 15, fontWeight: 700,
+                boxShadow: "0 4px 24px rgba(99,102,241,0.45)", textDecoration: "none",
+                display: "block", border: "none",
               }}
             >
-              Rank the next 8 →
+              Continue to Bracket 2 →
+            </a>
+            <a
+              href={`/categories/${categorySlug}/leaderboard`}
+              style={{
+                display: "block", textAlign: "center",
+                fontSize: 13, color: "rgba(255,255,255,0.35)", textDecoration: "none",
+                padding: "8px",
+              }}
+            >
+              View leaderboard so far
             </a>
           </div>
         )}
 
-        {/* Actions */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-          <a
-            href={`/categories/${categorySlug}/leaderboard`}
-            style={{
-              background: part === 2 ? "var(--accent)" : "rgba(255,255,255,0.05)",
-              color: part === 2 ? "#fff" : "rgba(255,255,255,0.5)",
-              border: part === 2 ? "none" : "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 700,
-              cursor: "pointer", textDecoration: "none",
-              boxShadow: part === 2 ? "0 4px 20px var(--accent-glow)" : "none",
-            }}
-          >
-            View Rankings →
-          </a>
-          <button
-            onClick={() => router.push("/categories")}
-            style={{
-              background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
-              border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12,
-              padding: "12px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer",
-            }}
-          >
-            ← Categories
-          </button>
-        </div>
+        {/* You vs. crowd — shown on both brackets if crowd data exists */}
+        {crowdData && crowdData.length > 0 && (
+          <div style={{
+            background: "rgba(255,255,255,0.025)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 14, padding: "16px 18px",
+            display: "flex", flexDirection: "column", gap: 12,
+          }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)" }}>
+              You vs. the crowd
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginBottom: 3 }}>Your pick</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>{winner.name}</div>
+                {winnerCrowdRank > 0 && (
+                  <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>
+                    #{winnerCrowdRank} in crowd rankings
+                  </div>
+                )}
+              </div>
+              <div style={{
+                padding: "5px 14px", borderRadius: 99, fontSize: 11.5, fontWeight: 700,
+                background: crowdAgreed ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.05)",
+                border: `1px solid ${crowdAgreed ? "rgba(52,211,153,0.3)" : "rgba(255,255,255,0.08)"}`,
+                color: crowdAgreed ? "#34D399" : "rgba(255,255,255,0.45)",
+                flexShrink: 0,
+              }}>
+                {crowdAgreed ? "✓ Crowd agrees" : "↕ You diverge from crowd"}
+              </div>
+            </div>
+            {!crowdAgreed && crowdTop && (
+              <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.35)", paddingTop: 4, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                Crowd&apos;s current #1:{" "}
+                <strong style={{ color: "rgba(255,255,255,0.65)" }}>{crowdTop.name}</strong>
+                {crowdData[0].totalVotes > 0 && (
+                  <span style={{ color: "rgba(255,255,255,0.25)" }}> · {Math.round(crowdData[0].winRate)}% win rate</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Bracket tree — scrollable below the fold */}
+        {/* Share (WhatsApp only) — shown after both brackets */}
+        {isLastPart && (
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                fontSize: 14, fontWeight: 700, padding: "11px 26px", borderRadius: 12,
+                background: "rgba(37,211,102,0.12)",
+                border: "1px solid rgba(37,211,102,0.3)",
+                color: "#25D366",
+                textDecoration: "none",
+                display: "flex", alignItems: "center", gap: 8,
+              }}
+            >
+              💬 Share on WhatsApp
+            </a>
+          </div>
+        )}
+
+        {/* Final actions */}
+        {isLastPart && (
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+            <a
+              href={`/categories/${categorySlug}/leaderboard`}
+              style={{
+                background: "var(--accent)", color: "#fff",
+                borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 700,
+                textDecoration: "none", boxShadow: "0 4px 20px var(--accent-glow)",
+              }}
+            >
+              View Rankings →
+            </a>
+            <button
+              onClick={() => router.push("/categories")}
+              style={{
+                background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
+                border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12,
+                padding: "12px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              ← Categories
+            </button>
+          </div>
+        )}
+
+        {/* Bracket tree */}
         <div style={{
           background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)",
           borderRadius: 16, padding: "20px 16px",
@@ -408,11 +477,27 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
       onTouchEnd={handleTouchEnd}
       className="flex flex-col gap-6"
     >
+      {/* How it works — shown only on very first matchup of bracket 1 */}
+      {showHowItWorks && !hasVotedOnce && (
+        <div style={{
+          background: "rgba(99,102,241,0.07)",
+          border: "1px solid rgba(99,102,241,0.18)",
+          borderRadius: 12, padding: "12px 16px",
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <span style={{ fontSize: 18, flexShrink: 0 }}>ℹ️</span>
+          <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>
+            <strong style={{ color: "rgba(255,255,255,0.75)" }}>16 items, 2 brackets, 14 quick matchups.</strong>{" "}
+            Vote with arrow keys, click, or swipe.
+          </div>
+        </div>
+      )}
+
       {/* Progress */}
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <span style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 500 }}>
-            {roundLabels[state.currentRound - 1]} · Round {state.currentRound} of 3
+            {bracketLabel} · {roundLabels[state.currentRound - 1]} — Match {matchInRound} of {totalInRound}
           </span>
           <span style={{ fontSize: 11.5, color: "var(--accent)", fontWeight: 600 }}>{pct}% done</span>
         </div>
@@ -452,6 +537,8 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           isSelected={selectedId === itemA.id}
           isLoser={selectedId !== null && selectedId !== itemA.id}
           isIdle={animPhase === "idle"}
+          showKeyHint={!hasVotedOnce}
+          keyHint="←"
           onSelect={(id, cx, cy) => doVote(id, itemB.id, cx, cy)}
         />
         <div className="cards-vs">
@@ -470,6 +557,8 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           isSelected={selectedId === itemB.id}
           isLoser={selectedId !== null && selectedId !== itemB.id}
           isIdle={animPhase === "idle"}
+          showKeyHint={!hasVotedOnce}
+          keyHint="→"
           onSelect={(id, cx, cy) => doVote(id, itemA.id, cx, cy)}
         />
       </div>

@@ -5,9 +5,20 @@ import { useRouter } from "next/navigation";
 import { generateCategoryAction, createCategoryAction } from "@/app/actions";
 import type { GeneratedCategory } from "@/lib/ai/generate-category";
 
+const PLACEHOLDER_EXAMPLES = [
+  "Be specific — '90s sitcoms' beats 'TV shows'",
+  "Be specific — 'Pixar films' beats 'animated movies'",
+  "Be specific — 'hip-hop albums from the 2000s' beats 'rap music'",
+  "Be specific — 'Italian pasta dishes' beats 'Italian food'",
+  "Be specific — 'Premier League clubs' beats 'football teams'",
+];
+
 export default function NewCategoryPage() {
   const router = useRouter();
   const [topic, setTopic] = useState("");
+  const [placeholder] = useState(
+    () => PLACEHOLDER_EXAMPLES[Math.floor(Math.random() * PLACEHOLDER_EXAMPLES.length)]
+  );
   const [phase, setPhase] = useState<"input" | "generating" | "preview" | "saving">("input");
   const [preview, setPreview] = useState<GeneratedCategory | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +90,7 @@ export default function NewCategoryPage() {
                 Generate with AI
               </h2>
               <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6 }}>
-                Type any topic — the more specific, the better results. Claude builds 16 items for a 1v1 bracket.
+                Type any topic — the more specific, the better. Claude builds 16 items across 2 brackets.
               </p>
             </div>
 
@@ -89,7 +100,7 @@ export default function NewCategoryPage() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-                placeholder="Be specific — 'early-stage Israeli startups' beats 'startups'"
+                placeholder={placeholder}
                 disabled={phase === "generating"}
                 style={{
                   width: "100%",
@@ -222,7 +233,7 @@ export default function NewCategoryPage() {
                   cursor: "pointer",
                 }}
               >
-                ↺ Redo
+                ↺ Regenerate
               </button>
             </div>
 

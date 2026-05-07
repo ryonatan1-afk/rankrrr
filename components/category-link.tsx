@@ -5,12 +5,11 @@ import { useState } from "react";
 
 interface CategoryLinkProps {
   href: string;
-  emoji: string;
   name: string;
   voteCount: number;
 }
 
-export function CategoryLink({ href, emoji, name, voteCount }: CategoryLinkProps) {
+export function CategoryLink({ href, name, voteCount }: CategoryLinkProps) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -26,13 +25,10 @@ export function CategoryLink({ href, emoji, name, voteCount }: CategoryLinkProps
         textDecoration: "none", transition: "all 0.15s ease",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 22 }}>{emoji}</span>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.02em" }}>{name}</div>
-          <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>
-            {voteCount} crowd votes
-          </div>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.02em" }}>{name}</div>
+        <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>
+          {voteCount} votes
         </div>
       </div>
       <span style={{ fontSize: 15, color: "rgba(255,255,255,0.25)" }}>→</span>

@@ -10,10 +10,16 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+function getInitials(name: string): string {
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return name.slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
 function Sparkline({ history, color }: { history: number[]; color: string }) {
   if (history.length < 2) return (
     <svg width={60} height={22} style={{ display: "block" }}>
-      <line x1={0} y1={11} x2={60} y2={11} stroke="rgba(255,255,255,0.08)" strokeWidth={1.5} strokeDasharray="3,3" />
+      <line x1={0} y1={11} x2={60} y2={11} stroke="rgba(255,255,255,0.12)" strokeWidth={1.5} strokeDasharray="3,3" />
     </svg>
   );
   const min = Math.min(...history), max = Math.max(...history);
@@ -25,7 +31,7 @@ function Sparkline({ history, color }: { history: number[]; color: string }) {
   });
   return (
     <svg width={60} height={22} style={{ display: "block", overflow: "visible" }}>
-      <polyline points={pts.join(" ")} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={pts.join(" ")} fill="none" stroke={color} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
       {pts.length > 0 && (() => {
         const last = pts[pts.length - 1].split(",");
         return <circle cx={parseFloat(last[0])} cy={parseFloat(last[1])} r={3} fill={color} />;
@@ -78,10 +84,7 @@ export default async function LeaderboardPage({ params }: Props) {
             >
               ← Back
             </Link>
-            <div>
-              <span className="mr-2">{category.emoji}</span>
-              <span className="font-semibold">{category.name}</span>
-            </div>
+            <span className="font-semibold">{category.name}</span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <Link
@@ -139,8 +142,8 @@ export default async function LeaderboardPage({ params }: Props) {
               return (
                 <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 18, fontSize: 11, color: "rgba(255,255,255,0.25)", fontWeight: 700, textAlign: "right" }}>{i + 1}</div>
-                  <span style={{ fontSize: 15, width: 22 }}>{item.emoji}</span>
                   <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: "rgba(255,255,255,0.8)" }}>{item.name}</div>
                     <div style={{ height: 5, borderRadius: 99, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
                       <div style={{
                         height: "100%", width: `${Math.max(wr, 2)}%`,
@@ -165,11 +168,23 @@ export default async function LeaderboardPage({ params }: Props) {
           borderRadius: 16, padding: 6,
           display: "flex", flexDirection: "column", gap: 2,
         }}>
+          {/* Elo explanation */}
+          <div style={{
+            padding: "10px 14px 8px",
+            fontSize: 11, color: "rgba(255,255,255,0.28)",
+            lineHeight: 1.5,
+            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            marginBottom: 2,
+          }}>
+            Ratings are Elo-based (start 1200, ±~15 per matchup). ▲▼ = change since last vote. Sparkline = last 10 ratings.
+          </div>
+
           {ranked.map((item, i) => {
             const { wins, losses, elo, eloHistory } = item.score;
             const wr = wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0;
             const delta = eloHistory.length >= 2 ? eloHistory[eloHistory.length - 1] - eloHistory[eloHistory.length - 2] : 0;
             const isTop = i < 3;
+            const itemColor = (item as any).color ?? "#6366F1";
 
             return (
               <div
@@ -193,12 +208,17 @@ export default async function LeaderboardPage({ params }: Props) {
                   )}
                 </div>
 
+                {/* Initials avatar */}
                 <div style={{
-                  width: 38, height: 38, flexShrink: 0, borderRadius: 10,
-                  background: `linear-gradient(135deg, ${item.color ?? "#6366F1"}33, ${item.color ?? "#6366F1"}11)`,
-                  border: `1.5px solid ${item.color ?? "#6366F1"}33`,
-                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
-                }}>{item.emoji}</div>
+                  width: 36, height: 36, flexShrink: 0, borderRadius: 10,
+                  background: `linear-gradient(135deg, ${itemColor}44, ${itemColor}18)`,
+                  border: `1.5px solid ${itemColor}33`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 800, color: itemColor,
+                  letterSpacing: "-0.02em",
+                }}>
+                  {getInitials(item.name)}
+                </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 650, letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -213,7 +233,7 @@ export default async function LeaderboardPage({ params }: Props) {
                 </div>
 
                 <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
-                  <Sparkline history={eloHistory} color={isTop ? "#818CF8" : "rgba(255,255,255,0.2)"} />
+                  <Sparkline history={eloHistory} color={isTop ? "#818CF8" : "rgba(255,255,255,0.45)"} />
                   <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.2)", letterSpacing: "0.04em" }}>momentum</div>
                 </div>
 

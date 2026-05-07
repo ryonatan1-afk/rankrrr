@@ -5,10 +5,13 @@ import { RedoButton } from "@/components/redo-button";
 
 export const dynamic = "force-dynamic";
 
+function getInitial(name: string): string {
+  return name.trim()[0]?.toUpperCase() ?? "?";
+}
+
 export default async function CategoriesPage() {
   const { userId } = await auth();
 
-  // Run both queries in parallel
   const [categories, sessions] = await Promise.all([
     db.category.findMany({
       where: { status: "ACTIVE" },
@@ -51,7 +54,7 @@ export default async function CategoriesPage() {
         <div className="flex flex-col gap-3">
           {categories.map((cat) => {
             const session = sessionMap.get(cat.id);
-            const totalMatchups = 7; // 8-item bracket = 7 votes
+            const totalMatchups = 7;
             const done = session
               ? (session.bracketState as any)?.rounds
                   ?.flatMap((r: any) => r.matchups)
@@ -70,7 +73,7 @@ export default async function CategoriesPage() {
                 }}
               >
                 <div className="flex items-center gap-4">
-                  {/* Progress ring */}
+                  {/* Progress ring with initial */}
                   <div className="relative w-12 h-12 flex-shrink-0">
                     <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
                       <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5" />
@@ -84,8 +87,12 @@ export default async function CategoriesPage() {
                         style={{ transition: "stroke-dashoffset 0.4s ease" }}
                       />
                     </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-lg">
-                      {isComplete ? "✓" : cat.emoji}
+                    <span className="absolute inset-0 flex items-center justify-center" style={{
+                      fontSize: isComplete ? 16 : 13,
+                      fontWeight: 700,
+                      color: isComplete ? "#34D399" : "rgba(255,255,255,0.5)",
+                    }}>
+                      {isComplete ? "✓" : getInitial(cat.name)}
                     </span>
                   </div>
 
@@ -93,10 +100,10 @@ export default async function CategoriesPage() {
                     <div className="font-semibold tracking-tight">{cat.name}</div>
                     <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
                       {isComplete
-                        ? "🎉 Complete"
+                        ? "Complete"
                         : done > 0
                         ? `${done} / ${totalMatchups} votes`
-                        : `${cat._count.items} items · ${cat._count.votes} crowd votes`}
+                        : `${cat._count.items} items · ${cat._count.votes} votes`}
                     </div>
                   </div>
                 </div>

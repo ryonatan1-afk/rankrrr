@@ -7,15 +7,50 @@ import { VoteCounter } from "@/components/vote-counter";
 
 export const dynamic = "force-dynamic";
 
+async function getTrendingStat(): Promise<string | null> {
+  try {
+    type PairRow = { itemAId: string; itemBId: string; total: bigint; aWins: bigint };
+    const pairs = await db.$queryRaw<PairRow[]>`
+      SELECT "itemAId", "itemBId",
+        COUNT(*) as total,
+        SUM(CASE WHEN "winnerId" = "itemAId" THEN 1 ELSE 0 END)::int as "aWins"
+      FROM "Vote"
+      GROUP BY "itemAId", "itemBId"
+      HAVING COUNT(*) >= 5
+      ORDER BY total DESC
+      LIMIT 1
+    `;
+    if (!pairs.length) return null;
+
+    const { itemAId, itemBId, total, aWins } = pairs[0];
+    const totalN = Number(total);
+    const aWinsN = Number(aWins);
+    const bWinsN = totalN - aWinsN;
+
+    const [itemA, itemB] = await Promise.all([
+      db.item.findUnique({ where: { id: itemAId }, select: { name: true } }),
+      db.item.findUnique({ where: { id: itemBId }, select: { name: true } }),
+    ]);
+    if (!itemA || !itemB) return null;
+
+    const winnerName = aWinsN >= bWinsN ? itemA.name : itemB.name;
+    const loserName = aWinsN >= bWinsN ? itemB.name : itemA.name;
+    const pct = Math.round(Math.max(aWinsN, bWinsN) / totalN * 100);
+    return `${pct}% prefer ${winnerName} over ${loserName}`;
+  } catch {
+    return null;
+  }
+}
+
 export default async function Home() {
-  const [all, totalVotes] = await Promise.all([
+  const [all, totalVotes, trendingStat] = await Promise.all([
     db.category.findMany({
       where: { status: "ACTIVE" },
       include: { _count: { select: { votes: true } } },
     }),
     db.vote.count(),
+    getTrendingStat(),
   ]);
-  // Shuffle and pick 3 — different on every load (page is force-dynamic)
   const categories = all.sort(() => Math.random() - 0.5).slice(0, 3);
 
   return (
@@ -43,6 +78,15 @@ export default async function Home() {
             <p style={{ fontSize: 17, color: "rgba(255,255,255,0.45)", marginTop: 14, lineHeight: 1.6 }}>
               Pick your favourite in 1v1 matchups.<br />See what the crowd really thinks.
             </p>
+            {trendingStat ? (
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.28)", marginTop: 10, fontStyle: "italic" }}>
+                Right now: {trendingStat}
+              </p>
+            ) : (
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.28)", marginTop: 10, fontStyle: "italic" }}>
+                Start voting to see what the crowd thinks
+              </p>
+            )}
           </div>
         </div>
 
@@ -61,7 +105,6 @@ export default async function Home() {
             <CategoryLink
               key={cat.id}
               href={`/categories/${cat.slug}/vote`}
-              emoji={cat.emoji ?? ""}
               name={cat.name}
               voteCount={cat._count.votes}
             />
