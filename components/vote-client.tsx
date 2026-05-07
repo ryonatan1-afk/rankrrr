@@ -66,8 +66,6 @@ function MatchupCard({
   isSelected,
   isLoser,
   isIdle,
-  showKeyHint,
-  keyHint,
   onSelect,
 }: {
   item: Item;
