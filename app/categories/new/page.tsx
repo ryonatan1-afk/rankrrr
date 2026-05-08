@@ -6,11 +6,11 @@ import { generateCategoryAction, createCategoryAction } from "@/app/actions";
 import type { GeneratedCategory } from "@/lib/ai/generate-category";
 
 const PLACEHOLDER_EXAMPLES = [
-  "Be specific — '90s sitcoms' beats 'TV shows'",
-  "Be specific — 'Pixar films' beats 'animated movies'",
-  "Be specific — 'hip-hop albums from the 2000s' beats 'rap music'",
-  "Be specific — 'Italian pasta dishes' beats 'Italian food'",
-  "Be specific — 'Premier League clubs' beats 'football teams'",
+  "Be specific: '90s sitcoms' beats 'TV shows'",
+  "Be specific: 'Pixar films' beats 'animated movies'",
+  "Be specific: 'hip-hop albums from the 2000s' beats 'rap music'",
+  "Be specific: 'Italian pasta dishes' beats 'Italian food'",
+  "Be specific: 'Premier League clubs' beats 'football teams'",
 ];
 
 export default function NewCategoryPage() {
@@ -32,7 +32,7 @@ export default function NewCategoryPage() {
       setPreview(result);
       setPhase("preview");
     } catch (e) {
-      setError("Generation failed — try a different topic.");
+      setError("Generation failed. Try a different topic.");
       setPhase("input");
     }
   }
@@ -90,12 +90,22 @@ export default function NewCategoryPage() {
                 Generate with AI
               </h2>
               <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6 }}>
-                Type any topic — the more specific, the better. Claude builds 16 items across 2 brackets.
+                Type any topic. The more specific, the better. Claude builds 16 items across 2 brackets.
               </p>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <label
+                htmlFor="category-topic"
+                style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: "0.1em",
+                  textTransform: "uppercase", color: "var(--muted)",
+                }}
+              >
+                Topic
+              </label>
               <input
+                id="category-topic"
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
@@ -156,7 +166,7 @@ export default function NewCategoryPage() {
                 borderRadius: 10,
                 padding: "10px 14px",
                 fontSize: 13,
-                color: "#F87171",
+                color: "var(--red)",
               }}>
                 {error}
               </div>
@@ -196,7 +206,7 @@ export default function NewCategoryPage() {
                 style={{
                   flex: 1,
                   background: phase === "saving" ? "rgba(52,211,153,0.4)" : "rgba(52,211,153,0.15)",
-                  color: "#34D399",
+                  color: "var(--green)",
                   border: "1px solid rgba(52,211,153,0.3)",
                   borderRadius: 12,
                   padding: "13px",
@@ -244,7 +254,7 @@ export default function NewCategoryPage() {
                 borderRadius: 10,
                 padding: "10px 14px",
                 fontSize: 13,
-                color: "#F87171",
+                color: "var(--red)",
               }}>
                 {error}
               </div>

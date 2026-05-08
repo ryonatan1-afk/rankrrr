@@ -18,10 +18,10 @@ export function RedoButton({ slug }: { slug: string }) {
     <button
       onClick={handleRedo}
       disabled={pending}
-      className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
+      className="min-h-[44px] px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
       style={{
         background: pending ? "rgba(52,211,153,0.05)" : "rgba(52,211,153,0.1)",
-        color: pending ? "rgba(52,211,153,0.4)" : "#34D399",
+        color: pending ? "rgba(52,211,153,0.4)" : "var(--green)",
         border: "1px solid rgba(52,211,153,0.2)",
         cursor: pending ? "default" : "pointer",
       }}

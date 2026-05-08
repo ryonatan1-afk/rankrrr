@@ -23,10 +23,16 @@ function Slot({ itemId, winnerId, itemMap }: {
       display: "flex", alignItems: "center", padding: "9px 12px",
       background: isWinner ? "rgba(52,211,153,0.08)" : "transparent",
       opacity: isLoser ? 0.28 : 1, transition: "opacity 0.2s",
+      position: "relative",
     }}>
+      {decided && (
+        <span style={{ position:"absolute", width:1, height:1, padding:0, margin:-1, overflow:"hidden", clip:"rect(0,0,0,0)", whiteSpace:"nowrap", borderWidth:0 }}>
+          {isWinner ? "Winner: " : "Eliminated: "}
+        </span>
+      )}
       <span style={{
         fontSize: 12, lineHeight: 1.2, fontWeight: isWinner ? 700 : 500,
-        color: isWinner ? "#34D399" : "rgba(255,255,255,0.75)",
+        color: isWinner ? "var(--green)" : "rgba(255,255,255,0.75)",
         maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         display: "block",
       }}>
@@ -39,7 +45,7 @@ function Slot({ itemId, winnerId, itemMap }: {
 function MatchupBlock({ matchup, itemMap }: { matchup: BracketMatchup; itemMap: Record<string, Item> }) {
   return (
     <div style={{
-      background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)",
+      background: "var(--surface)", border: "1px solid var(--border)",
       borderRadius: 10, overflow: "hidden", width: 130, flexShrink: 0,
     }}>
       <Slot itemId={matchup.itemAId} winnerId={matchup.winnerId} itemMap={itemMap} />
@@ -99,15 +105,23 @@ function VerticalBracket({ state, itemMap }: BracketTreeProps) {
               const b = itemMap[m.itemBId];
               if (!a && !b) return null;
               return (
-                <div key={mi} style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  background: "rgba(255,255,255,0.025)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: 8, padding: "8px 12px", fontSize: 12,
-                }}>
+                <div
+                  key={mi}
+                  aria-label={
+                    m.winnerId
+                      ? `${itemMap[m.winnerId]?.name ?? "TBD"} beat ${m.winnerId === m.itemAId ? (b?.name ?? "TBD") : (a?.name ?? "TBD")}`
+                      : `${a?.name ?? "TBD"} vs ${b?.name ?? "TBD"}`
+                  }
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    background: "var(--surface)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    borderRadius: 8, padding: "8px 12px", fontSize: 12,
+                  }}
+                >
                   <span style={{
                     fontWeight: m.winnerId === m.itemAId ? 700 : 500,
-                    color: m.winnerId === m.itemAId ? "#34D399" : m.winnerId ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
+                    color: m.winnerId === m.itemAId ? "var(--green)" : m.winnerId ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
                     flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
                     {a?.name ?? "TBD"}
@@ -115,7 +129,7 @@ function VerticalBracket({ state, itemMap }: BracketTreeProps) {
                   <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", flexShrink: 0 }}>vs</span>
                   <span style={{
                     fontWeight: m.winnerId === m.itemBId ? 700 : 500,
-                    color: m.winnerId === m.itemBId ? "#34D399" : m.winnerId ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
+                    color: m.winnerId === m.itemBId ? "var(--green)" : m.winnerId ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
                     flex: 1, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
                     {b?.name ?? "TBD"}
@@ -217,7 +231,7 @@ export function BracketTree({ state, itemMap }: BracketTreeProps) {
                   borderRadius: 12, padding: "14px 16px", flexShrink: 0, minWidth: 80,
                 }}>
                   <span style={{
-                    fontSize: 12, fontWeight: 700, color: "#34D399",
+                    fontSize: 12, fontWeight: 700, color: "var(--green)",
                     maxWidth: 90, textAlign: "center", lineHeight: 1.3,
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>

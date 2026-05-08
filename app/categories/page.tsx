@@ -79,7 +79,7 @@ export default async function CategoriesPage() {
                       <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5" />
                       <circle
                         cx="24" cy="24" r="20" fill="none"
-                        stroke={isComplete ? "#34D399" : "var(--accent)"}
+                        stroke={isComplete ? "var(--green)" : "var(--accent)"}
                         strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeDasharray={`${2 * Math.PI * 20}`}
@@ -90,7 +90,7 @@ export default async function CategoriesPage() {
                     <span className="absolute inset-0 flex items-center justify-center" style={{
                       fontSize: isComplete ? 16 : 13,
                       fontWeight: 700,
-                      color: isComplete ? "#34D399" : "rgba(255,255,255,0.5)",
+                      color: isComplete ? "var(--green)" : "rgba(255,255,255,0.5)",
                     }}>
                       {isComplete ? "✓" : getInitial(cat.name)}
                     </span>
@@ -111,7 +111,7 @@ export default async function CategoriesPage() {
                 <div className="flex items-center gap-2">
                   <Link
                     href={`/categories/${cat.slug}/leaderboard`}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    className="min-h-[44px] flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                     style={{
                       background: "rgba(255,255,255,0.05)",
                       border: "1px solid rgba(255,255,255,0.08)",
@@ -125,7 +125,7 @@ export default async function CategoriesPage() {
                   ) : (
                     <Link
                       href={`/categories/${cat.slug}/vote`}
-                      className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                      className="min-h-[44px] flex items-center px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
                       style={{
                         background: "var(--accent)",
                         color: "#fff",

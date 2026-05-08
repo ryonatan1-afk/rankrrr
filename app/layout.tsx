@@ -40,17 +40,19 @@ export default function RootLayout({
           gtag('config', 'G-K2Z9CNWEBE');
         `}</Script>
         <ClerkProvider>
+          <style>{`.skip-link:not(:focus){position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}.skip-link:focus{position:fixed;top:12px;left:12px;z-index:100;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;color:#fff;background:var(--accent);text-decoration:none;outline:2px solid rgba(255,255,255,0.5);outline-offset:2px}`}</style>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
           <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 backdrop-blur-md bg-[#0A0A0F]/70">
             <NavLogo />
             <div className="ml-auto flex items-center gap-3">
               <Show when="signed-out">
                 <SignInButton>
-                  <button className="text-sm font-medium text-white/50 hover:text-white transition-colors">
+                  <button className="min-h-[44px] px-2 text-sm font-medium text-white/50 hover:text-white transition-colors">
                     Sign in
                   </button>
                 </SignInButton>
                 <SignUpButton>
-                  <button className="rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">
+                  <button className="min-h-[44px] rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">
                     Get started
                   </button>
                 </SignUpButton>
@@ -66,7 +68,9 @@ export default function RootLayout({
               </Show>
             </div>
           </header>
-          {children}
+          <div id="main-content" style={{ display: "contents" }}>
+            {children}
+          </div>
         </ClerkProvider>
       </body>
     </html>

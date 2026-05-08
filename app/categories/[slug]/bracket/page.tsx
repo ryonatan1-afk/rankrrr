@@ -68,14 +68,14 @@ export default async function BracketPage({ params }: Props) {
         {/* Bracket or prompt */}
         {bracketState ? (
           <div style={{
-            background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)",
+            background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)",
             borderRadius: 16, padding: "20px 16px",
           }}>
             <BracketTree state={bracketState} itemMap={itemMap} />
           </div>
         ) : (
           <div style={{
-            background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)",
+            background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)",
             borderRadius: 16, padding: "40px 24px",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 12, textAlign: "center",
           }}>

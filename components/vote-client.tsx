@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { submitVote } from "@/app/actions";
 import {
   getCurrentMatchup,
@@ -86,10 +87,19 @@ function MatchupCard({
     onSelect(item.id, e.clientX, e.clientY);
   };
 
-  const border = isSelected ? "#34D399" : isLoser ? "rgba(255,255,255,0.04)" : hovered && isIdle ? "rgba(99,102,241,0.7)" : "rgba(255,255,255,0.08)";
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isIdle) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const rect = ref.current!.getBoundingClientRect();
+      onSelect(item.id, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    }
+  };
+
+  const border = isSelected ? "var(--green)" : isLoser ? "rgba(255,255,255,0.04)" : hovered && isIdle ? "rgba(99,102,241,0.7)" : "rgba(255,255,255,0.08)";
   const bg = isSelected ? "rgba(52,211,153,0.05)" : hovered && isIdle ? "rgba(99,102,241,0.07)" : "rgba(255,255,255,0.03)";
   const shadow = isSelected
-    ? "0 0 0 1px #34D399, 0 8px 48px rgba(52,211,153,0.25)"
+    ? "0 0 0 1px var(--green), 0 8px 48px rgba(52,211,153,0.25)"
     : hovered && isIdle
     ? "0 0 0 1px rgba(99,102,241,0.6), 0 8px 48px rgba(99,102,241,0.2)"
     : "0 0 0 1px rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.3)";
@@ -97,9 +107,13 @@ function MatchupCard({
   return (
     <div
       ref={ref}
+      role="button"
+      tabIndex={isIdle ? 0 : -1}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className="matchup-card"
       style={{
         flex: 1, minWidth: 0,
         background: bg,
@@ -110,7 +124,6 @@ function MatchupCard({
         transform: `scale(${isSelected ? 1.04 : isLoser ? 0.95 : hovered && isIdle ? 1.025 : 1})`,
         opacity: isLoser ? 0.35 : 1,
         boxShadow: shadow,
-        backdropFilter: "blur(12px)",
         transition: "transform 0.25s cubic-bezier(.34,1.56,.64,1), opacity 0.28s ease, box-shadow 0.22s ease, border-color 0.18s ease, background 0.18s ease",
         position: "relative",
         display: "flex",
@@ -125,7 +138,7 @@ function MatchupCard({
       {(hovered || isSelected) && (
         <div style={{
           position: "absolute", inset: 0, borderRadius: "inherit",
-          background: `radial-gradient(ellipse at 50% 0%, ${isSelected ? "#34D39918" : "#6366F118"} 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse at 50% 0%, ${isSelected ? "var(--green)18" : "#6366F118"} 0%, transparent 70%)`,
           pointerEvents: "none",
         }} />
       )}
@@ -136,7 +149,7 @@ function MatchupCard({
           position: "absolute", top: 12, right: 14,
           background: "rgba(52,211,153,0.15)",
           border: "1px solid rgba(52,211,153,0.4)",
-          color: "#34D399",
+          color: "var(--green)",
           fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
           padding: "3px 9px", borderRadius: 99,
         }}>
@@ -148,15 +161,18 @@ function MatchupCard({
       {/* Image slot — always same size so both cards stay symmetric */}
       <div style={{
         width: 88, height: 88, borderRadius: 16, overflow: "hidden", flexShrink: 0,
+        position: "relative",
         background: item.imageUrl ? "transparent" : "rgba(255,255,255,0.04)",
-        border: item.imageUrl ? "none" : "1px solid rgba(255,255,255,0.07)",
+        border: item.imageUrl ? "none" : "1px solid var(--border)",
         boxShadow: item.imageUrl ? "0 4px 20px rgba(0,0,0,0.4)" : "none",
       }}>
         {item.imageUrl && (
-          <img
+          <Image
             src={item.imageUrl}
             alt={item.name}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            fill
+            sizes="88px"
+            style={{ objectFit: "cover" }}
           />
         )}
       </div>
@@ -196,6 +212,8 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     return initialDone === 0 && part === 1;
   });
   const swipeStartX = useRef<number | null>(null);
+  const cardsContainerRef = useRef<HTMLDivElement>(null);
+  const hasVoted = useRef(false);
 
   const currentMatchup = getCurrentMatchup(state);
   const { done, total } = getRoundProgress(state);
@@ -204,6 +222,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
 
   const doVote = useCallback(async (winnerId: string, loserId: string, cx?: number, cy?: number) => {
     if (animPhase !== "idle") return;
+    hasVoted.current = true;
     setSelectedId(winnerId);
     setAnimPhase("selected");
 
@@ -211,7 +230,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
       id: i,
       x: cx ?? window.innerWidth / 2,
       y: cy ?? window.innerHeight / 2,
-      color: ["#6366F1", "#818CF8", "#34D399", "#A5B4FC", "#FCD34D", "#6EE7B7"][i % 6],
+      color: ["#6366F1", "#818CF8", "var(--green)", "#A5B4FC", "#FCD34D", "#6EE7B7"][i % 6],
       angle: (i / 16) * 360,
       dist: 52 + Math.random() * 56,
     }));
@@ -245,6 +264,12 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     return () => window.removeEventListener("keydown", handler);
   }, [animPhase, currentMatchup, doVote]);
 
+  useEffect(() => {
+    if (!visible || animPhase !== "idle" || !hasVoted.current) return;
+    const first = cardsContainerRef.current?.querySelector<HTMLElement>('[role="button"]');
+    first?.focus({ preventScroll: true });
+  }, [visible, animPhase]);
+
   const handleTouchStart = (e: React.TouchEvent) => { swipeStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (swipeStartX.current === null || !currentMatchup || animPhase !== "idle") return;
@@ -269,7 +294,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     const winnerCrowdRank = crowdData ? crowdData.findIndex((cd) => cd.itemId === winner.id) + 1 : 0;
     const crowdTop = crowdData && crowdData.length > 0 ? itemMap[crowdData[0].itemId] : null;
     const crowdAgreed = crowdData && crowdData.length > 0 && crowdData[0].itemId === winner.id;
-    const shareText = `I picked ${winner.name} as the best in ${categoryName} — what's yours?`;
+    const shareText = `I picked ${winner.name} as the best in ${categoryName}. What's yours?`;
     const shareUrl = `https://rankrrr.vercel.app/categories/${categorySlug}/vote`;
 
     return (
@@ -282,7 +307,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
             border: `1px solid ${isLastPart ? "rgba(52,211,153,0.3)" : "rgba(99,102,241,0.3)"}`,
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 24, fontWeight: 800,
-            color: isLastPart ? "#34D399" : "#818CF8",
+            color: isLastPart ? "var(--green)" : "#818CF8",
             boxShadow: isLastPart ? "0 8px 40px rgba(52,211,153,0.2)" : "0 8px 40px rgba(99,102,241,0.2)",
           }}>
             {getInitials(winner.name)}
@@ -291,7 +316,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
             <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 6 }}>
               {isLastPart ? "All done!" : "Bracket 1 complete"}
             </div>
-            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 }}>
+            <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>
               {isLastPart ? (
                 <><strong style={{ color: "#fff" }}>{winner.name}</strong> topped your bracket.</>
               ) : (
@@ -332,8 +357,8 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
         {/* You vs. crowd — shown on both brackets if crowd data exists */}
         {crowdData && crowdData.length > 0 && (
           <div style={{
-            background: "rgba(255,255,255,0.025)",
-            border: "1px solid rgba(255,255,255,0.07)",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
             borderRadius: 14, padding: "16px 18px",
             display: "flex", flexDirection: "column", gap: 12,
           }}>
@@ -354,7 +379,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                 padding: "5px 14px", borderRadius: 99, fontSize: 11.5, fontWeight: 700,
                 background: crowdAgreed ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.05)",
                 border: `1px solid ${crowdAgreed ? "rgba(52,211,153,0.3)" : "rgba(255,255,255,0.08)"}`,
-                color: crowdAgreed ? "#34D399" : "rgba(255,255,255,0.45)",
+                color: crowdAgreed ? "var(--green)" : "var(--muted)",
                 flexShrink: 0,
               }}>
                 {crowdAgreed ? "✓ Crowd agrees" : "↕ You diverge from crowd"}
@@ -420,7 +445,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
 
         {/* Bracket tree */}
         <div style={{
-          background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)",
+          background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)",
           borderRadius: 16, padding: "20px 16px",
         }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: 16 }}>
@@ -444,6 +469,9 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
       onTouchEnd={handleTouchEnd}
       className="flex flex-col gap-6"
     >
+      <div aria-live="polite" aria-atomic="true" style={{ position:"absolute", width:1, height:1, padding:0, margin:-1, overflow:"hidden", clip:"rect(0,0,0,0)", whiteSpace:"nowrap", borderWidth:0 }}>
+        {`${bracketLabel}: ${roundLabels[state.currentRound - 1]}, match ${matchInRound} of ${totalInRound}. ${itemA.name} vs ${itemB.name}.`}
+      </div>
       {/* How it works — shown only on very first matchup of bracket 1 */}
       {showHowItWorks && (
         <div style={{
@@ -468,10 +496,17 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           </span>
           <span style={{ fontSize: 11.5, color: "var(--accent)", fontWeight: 600 }}>{pct}% done</span>
         </div>
-        <div style={{ height: 3, borderRadius: 99, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+        <div
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Voting progress: ${pct}% complete`}
+          style={{ height: 3, borderRadius: 99, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}
+        >
           <div style={{
             height: "100%", width: `${pct}%`,
-            background: "linear-gradient(90deg, var(--accent), #34D399)",
+            background: "linear-gradient(90deg, var(--accent), var(--green))",
             borderRadius: 99, transition: "width 0.4s cubic-bezier(.4,0,.2,1)",
           }} />
         </div>
@@ -485,13 +520,15 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
       <style>{`
         .cards-row { display: flex; flex-direction: row; gap: 16px; align-items: stretch; }
         .cards-vs { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .matchup-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 22px; }
         @media (max-width: 480px) {
           .cards-row { flex-direction: column; gap: 12px; }
           .cards-vs { flex-direction: row; gap: 12px; }
-          .cards-vs::before, .cards-vs::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.07); }
+          .cards-vs::before, .cards-vs::after { content: ""; flex: 1; height: 1px; background: var(--border); }
         }
       `}</style>
       <div
+        ref={cardsContainerRef}
         className="cards-row"
         style={{
           opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(10px)",
@@ -506,7 +543,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           isIdle={animPhase === "idle"}
           onSelect={(id, cx, cy) => doVote(id, itemB.id, cx, cy)}
         />
-        <div className="cards-vs">
+        <div className="cards-vs" aria-hidden="true">
           <div style={{
             width: 40, height: 40, borderRadius: "50%",
             background: "rgba(255,255,255,0.04)",

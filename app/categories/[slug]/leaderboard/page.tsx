@@ -147,7 +147,7 @@ export default async function LeaderboardPage({ params }: Props) {
                     <div style={{ height: 5, borderRadius: 99, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
                       <div style={{
                         height: "100%", width: `${Math.max(wr, 2)}%`,
-                        background: i === 0 ? "linear-gradient(90deg, var(--accent), #34D399)" : "rgba(99,102,241,0.35)",
+                        background: i === 0 ? "linear-gradient(90deg, var(--accent), var(--green))" : "rgba(99,102,241,0.35)",
                         borderRadius: 99, transition: "width 0.5s ease",
                         boxShadow: i === 0 ? "0 0 8px var(--accent-glow)" : "none",
                       }} />
@@ -225,9 +225,9 @@ export default async function LeaderboardPage({ params }: Props) {
                     {item.name}
                   </div>
                   <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.3)", marginTop: 2, display: "flex", gap: 8 }}>
-                    <span style={{ color: "#34D399", fontWeight: 600 }}>{wins}W</span>
+                    <span style={{ color: "var(--green)", fontWeight: 600 }}>{wins}W</span>
                     <span>/</span>
-                    <span style={{ color: "#F87171", fontWeight: 600 }}>{losses}L</span>
+                    <span style={{ color: "var(--red)", fontWeight: 600 }}>{losses}L</span>
                     {wins + losses > 0 && <span>· {Math.round(wr)}% wr</span>}
                   </div>
                 </div>
@@ -244,7 +244,7 @@ export default async function LeaderboardPage({ params }: Props) {
                   {delta !== 0 && (
                     <span style={{
                       fontSize: 10, fontWeight: 700,
-                      color: delta > 0 ? "#34D399" : "#F87171",
+                      color: delta > 0 ? "var(--green)" : "var(--red)",
                       background: delta > 0 ? "rgba(52,211,153,0.12)" : "rgba(248,113,113,0.12)",
                       borderRadius: 6, padding: "2px 7px",
                       border: `1px solid ${delta > 0 ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)"}`,

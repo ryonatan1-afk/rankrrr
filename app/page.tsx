@@ -69,13 +69,12 @@ export default async function Home() {
 
           <div>
             <h1 style={{
-              fontSize: 72, fontWeight: 800, letterSpacing: "-0.06em", lineHeight: 0.95,
-              background: "linear-gradient(135deg, #fff 40%, rgba(255,255,255,0.5))",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              fontSize: "clamp(48px, 18vw, 72px)", fontWeight: 800, letterSpacing: "-0.06em", lineHeight: 0.95,
+              color: "#fff",
             }}>
               Rankr
             </h1>
-            <p style={{ fontSize: 17, color: "rgba(255,255,255,0.45)", marginTop: 14, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 17, color: "var(--muted)", marginTop: 14, lineHeight: 1.6 }}>
               Rank anything. Settle everything.
             </p>
             {trendingStat && (
@@ -90,8 +89,8 @@ export default async function Home() {
 
         {/* Category list */}
         <div style={{
-          width: "100%", background: "rgba(255,255,255,0.025)",
-          border: "1px solid rgba(255,255,255,0.07)", borderRadius: 22, padding: "20px 18px",
+          width: "100%", background: "var(--surface)",
+          border: "1px solid var(--border)", borderRadius: 22, padding: "20px 18px",
           display: "flex", flexDirection: "column", gap: 10,
         }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
@@ -118,7 +117,7 @@ export default async function Home() {
               <span style={{ fontSize: 22 }}>✨</span>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#818CF8", letterSpacing: "-0.02em" }}>Generate with AI</div>
-                <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>Type any topic — Claude builds it</div>
+                <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>Type any topic. Claude builds it.</div>
               </div>
             </div>
             <span style={{ fontSize: 15, color: "#818CF8" }}>→</span>

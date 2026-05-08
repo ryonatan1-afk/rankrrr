@@ -16,9 +16,9 @@ interface Category {
 }
 
 const STATUS_STYLES: Record<Status, { bg: string; color: string; border: string; label: string }> = {
-  ACTIVE:  { bg: "rgba(52,211,153,0.1)",  color: "#34D399", border: "rgba(52,211,153,0.3)",  label: "Active"  },
+  ACTIVE:  { bg: "rgba(52,211,153,0.1)",  color: "var(--green)", border: "rgba(52,211,153,0.3)",  label: "Active"  },
   HIDDEN:  { bg: "rgba(251,191,36,0.1)",  color: "#FBBF24", border: "rgba(251,191,36,0.3)",  label: "Hidden"  },
-  DELETED: { bg: "rgba(248,113,113,0.1)", color: "#F87171", border: "rgba(248,113,113,0.3)", label: "Deleted" },
+  DELETED: { bg: "rgba(248,113,113,0.1)", color: "var(--red)", border: "rgba(248,113,113,0.3)", label: "Deleted" },
 };
 
 function StatusBadge({ status }: { status: Status }) {
@@ -54,7 +54,7 @@ function CategoryRow({ cat }: { cat: Category }) {
 
   return (
     <div style={{
-      background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)",
+      background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)",
       borderRadius: 12, padding: "14px 16px",
       opacity: isPending ? 0.6 : 1, transition: "opacity 0.15s",
     }}>
@@ -67,6 +67,7 @@ function CategoryRow({ cat }: { cat: Category }) {
               <input
                 value={emoji}
                 onChange={e => setEmoji(e.target.value)}
+                aria-label="Category emoji"
                 style={{
                   width: 44, textAlign: "center", fontSize: 18,
                   background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
@@ -76,6 +77,7 @@ function CategoryRow({ cat }: { cat: Category }) {
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
+                aria-label="Category name"
                 style={{
                   flex: 1, fontSize: 14, fontWeight: 600,
                   background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
@@ -103,15 +105,15 @@ function CategoryRow({ cat }: { cat: Category }) {
         <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {editing ? (
             <>
-              <ActionButton onClick={handleSave} color="#34D399">Save</ActionButton>
+              <ActionButton onClick={handleSave} color="var(--green)">Save</ActionButton>
               <ActionButton onClick={() => { setEditing(false); setName(cat.name); setEmoji(cat.emoji ?? ""); }}>Cancel</ActionButton>
             </>
           ) : (
             <>
               <ActionButton onClick={() => setEditing(true)}>Edit</ActionButton>
-              {cat.status !== "ACTIVE"  && <ActionButton onClick={() => handleStatus("ACTIVE")}  color="#34D399">Active</ActionButton>}
+              {cat.status !== "ACTIVE"  && <ActionButton onClick={() => handleStatus("ACTIVE")}  color="var(--green)">Active</ActionButton>}
               {cat.status !== "HIDDEN"  && <ActionButton onClick={() => handleStatus("HIDDEN")}  color="#FBBF24">Hide</ActionButton>}
-              {cat.status !== "DELETED" && <ActionButton onClick={() => handleStatus("DELETED")} color="#F87171">Delete</ActionButton>}
+              {cat.status !== "DELETED" && <ActionButton onClick={() => handleStatus("DELETED")} color="var(--red)">Delete</ActionButton>}
             </>
           )}
         </div>
@@ -172,7 +174,7 @@ export default function AdminClient({ categories }: { categories: Category[] }) 
             style={{
               fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, cursor: "pointer",
               background: filter === f.value ? "rgba(99,102,241,0.15)" : "rgba(255,255,255,0.04)",
-              border: `1px solid ${filter === f.value ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.07)"}`,
+              border: `1px solid ${filter === f.value ? "rgba(99,102,241,0.4)" : "var(--border)"}`,
               color: filter === f.value ? "#818CF8" : "rgba(255,255,255,0.4)",
               transition: "all 0.15s",
             }}
