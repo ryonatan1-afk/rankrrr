@@ -20,10 +20,7 @@ export default async function AdminPage() {
   const [categories, scheduled] = await Promise.all([
     db.category.findMany({
       orderBy: { createdAt: "desc" },
-      include: {
-        _count: { select: { votes: true, items: true } },
-        author: { select: { email: true } },
-      },
+      select: { id: true, name: true, emoji: true, status: true, createdAt: true, featuredDate: true, showImages: true, _count: { select: { votes: true, items: true } }, author: { select: { email: true } } },
     }),
     db.category.findMany({
       where: { featuredDate: { gte: todayUTC }, status: { not: "DELETED" } },

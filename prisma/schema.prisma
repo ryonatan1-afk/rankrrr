@@ -32,6 +32,7 @@ model Category {
   emoji       String?
   location    String?        // optional geo tag (city, country, etc.)
   isPublic     Boolean        @default(true)
+  showImages   Boolean        @default(true)
   status       CategoryStatus @default(ACTIVE)
   featuredDate DateTime?      @unique @db.Date
   createdAt    DateTime       @default(now())

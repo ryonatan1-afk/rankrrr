@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { updateCategoryStatus, updateCategoryMeta, updateFeaturedDate, destroyCategory, getCategoryItems, refreshItemImage, setItemImageUrl, replaceItem } from "./actions";
+import { updateCategoryStatus, updateCategoryMeta, updateFeaturedDate, destroyCategory, getCategoryItems, refreshItemImage, setItemImageUrl, replaceItem, toggleCategoryImages } from "./actions";
 
 type Status = "ACTIVE" | "HIDDEN" | "DELETED";
 
@@ -13,6 +13,7 @@ interface Category {
   status: Status;
   createdAt: Date;
   featuredDate: Date | null;
+  showImages: boolean;
   _count: { votes: number; items: number };
   author: { email: string } | null;
 }
@@ -66,6 +67,10 @@ function CategoryRow({ cat }: { cat: Category }) {
       await updateCategoryMeta(cat.id, name.trim(), emoji.trim());
       setEditing(false);
     });
+  }
+
+  function handleToggleImages() {
+    startTransition(() => toggleCategoryImages(cat.id, !cat.showImages));
   }
 
   return (
@@ -147,6 +152,7 @@ function CategoryRow({ cat }: { cat: Category }) {
           ) : (
             <>
               <ActionButton onClick={() => setEditing(true)}>Edit</ActionButton>
+              <ActionButton onClick={handleToggleImages} color={cat.showImages ? "#818CF8" : "rgba(255,255,255,0.3)"}>{cat.showImages ? "📷 Images" : "🚫 Images"}</ActionButton>
               {cat.status !== "ACTIVE"  && <ActionButton onClick={() => handleStatus("ACTIVE")}  color="var(--green)">Active</ActionButton>}
               {cat.status !== "HIDDEN"  && <ActionButton onClick={() => handleStatus("HIDDEN")}  color="#FBBF24">Hide</ActionButton>}
               {cat.status !== "DELETED" && <ActionButton onClick={() => handleStatus("DELETED")} color="var(--red)">Delete</ActionButton>}

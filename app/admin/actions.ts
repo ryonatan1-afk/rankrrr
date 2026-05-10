@@ -58,6 +58,12 @@ export async function setItemImageUrl(itemId: string, imageUrl: string) {
   await db.item.update({ where: { id: itemId }, data: { imageUrl: imageUrl || null } });
 }
 
+export async function toggleCategoryImages(id: string, showImages: boolean) {
+  await requireAdmin();
+  await db.category.update({ where: { id }, data: { showImages } });
+  revalidatePath("/admin");
+}
+
 export async function destroyCategory(id: string) {
   await requireAdmin();
   await db.category.delete({ where: { id } });

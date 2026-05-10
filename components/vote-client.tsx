@@ -38,6 +38,7 @@ interface Props {
   crowdData?: CrowdItem[];
   streak?: number;
   totalCompleted?: number;
+  showImages?: boolean;
 }
 
 function getInitials(name: string): string {
@@ -69,12 +70,14 @@ function MatchupCard({
   isLoser,
   isIdle,
   onSelect,
+  showImages = true,
 }: {
   item: Item;
   isSelected: boolean;
   isLoser: boolean;
   isIdle: boolean;
   onSelect: (id: string, cx: number, cy: number) => void;
+  showImages?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
@@ -159,24 +162,26 @@ function MatchupCard({
       )}
 
 
-      {/* Image slot — always same size so both cards stay symmetric */}
-      <div style={{
-        width: 88, height: 88, borderRadius: 16, overflow: "hidden", flexShrink: 0,
-        position: "relative",
-        background: item.imageUrl ? "transparent" : "rgba(255,255,255,0.04)",
-        border: item.imageUrl ? "none" : "1px solid var(--border)",
-        boxShadow: item.imageUrl ? "0 4px 20px rgba(0,0,0,0.4)" : "none",
-      }}>
-        {item.imageUrl && (
-          <Image
-            src={item.imageUrl}
-            alt={item.name}
-            fill
-            sizes="88px"
-            style={{ objectFit: "cover" }}
-          />
-        )}
-      </div>
+      {/* Image slot */}
+      {showImages && (
+        <div style={{
+          width: 88, height: 88, borderRadius: 16, overflow: "hidden", flexShrink: 0,
+          position: "relative",
+          background: item.imageUrl ? "transparent" : "rgba(255,255,255,0.04)",
+          border: item.imageUrl ? "none" : "1px solid var(--border)",
+          boxShadow: item.imageUrl ? "0 4px 20px rgba(0,0,0,0.4)" : "none",
+        }}>
+          {item.imageUrl && (
+            <Image
+              src={item.imageUrl}
+              alt={item.name}
+              fill
+              sizes="88px"
+              style={{ objectFit: "cover" }}
+            />
+          )}
+        </div>
+      )}
 
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2 }}>
@@ -200,7 +205,7 @@ function MatchupCard({
   );
 }
 
-export default function VoteClient({ categoryId, categorySlug, categoryName, initialBracketState, itemMap, crowdData, streak = 0, totalCompleted = 0 }: Props) {
+export default function VoteClient({ categoryId, categorySlug, categoryName, initialBracketState, itemMap, crowdData, streak = 0, totalCompleted = 0, showImages = true }: Props) {
   const router = useRouter();
   const [state, setState] = useState<BracketState>(initialBracketState);
   const [animPhase, setAnimPhase] = useState<"idle" | "selected" | "transitioning">("idle");
@@ -584,6 +589,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           isSelected={selectedId === itemA.id}
           isLoser={selectedId !== null && selectedId !== itemA.id}
           isIdle={animPhase === "idle"}
+          showImages={showImages}
           onSelect={(id, cx, cy) => doVote(id, itemB.id, cx, cy)}
         />
         <div className="cards-vs" aria-hidden="true">
@@ -602,6 +608,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           isSelected={selectedId === itemB.id}
           isLoser={selectedId !== null && selectedId !== itemB.id}
           isIdle={animPhase === "idle"}
+          showImages={showImages}
           onSelect={(id, cx, cy) => doVote(id, itemA.id, cx, cy)}
         />
       </div>

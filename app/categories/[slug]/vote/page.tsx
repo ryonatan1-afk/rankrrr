@@ -76,6 +76,7 @@ export default async function VotePage({ params }: Props) {
           categoryName={category.name}
           initialBracketState={bracketState}
           itemMap={itemMap}
+          showImages={category.showImages}
           crowdData={crowdData}
           streak={userStats?.streak ?? 0}
           totalCompleted={userStats?.totalCompleted ?? 0}
