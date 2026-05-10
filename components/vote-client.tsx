@@ -581,7 +581,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           animation: swipeDir === "right" ? "swipe-right 0.28s ease-in forwards" : swipeDir === "left" ? "swipe-left 0.28s ease-in forwards" : "none",
           "--swipe-from-x": `${swipeCaptureDx}px`,
           "--swipe-from-rot": `${(swipeCaptureDx * 0.05).toFixed(1)}deg`,
-        }}
+        } as React.CSSProperties}
       >
         <MatchupCard
           key={itemA.id}
