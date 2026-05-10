@@ -17,7 +17,7 @@ export default async function CategoriesPage() {
 
   const [categories, sessions] = await Promise.all([
     db.category.findMany({
-      where: { status: "ACTIVE", NOT: { featuredDate: todayUTC } },
+      where: { status: "ACTIVE", OR: [{ featuredDate: null }, { featuredDate: { not: todayUTC } }] },
       include: { _count: { select: { votes: true, items: true } } },
       orderBy: { createdAt: "asc" },
     }),
