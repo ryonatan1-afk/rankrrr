@@ -35,7 +35,7 @@ export default async function BracketPage({ params }: Props) {
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-8">
-      <div className="w-full max-w-3xl flex flex-col gap-6">
+      <div className="min-w-0 flex flex-col gap-6" style={{ width: "100%", maxWidth: 768 }}>
 
         {/* Header */}
         <div className="flex items-center gap-3">

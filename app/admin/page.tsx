@@ -35,7 +35,7 @@ export default async function AdminPage() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-8">
-      <div className="w-full max-w-4xl flex flex-col gap-6">
+      <div className="min-w-0 flex flex-col gap-6" style={{ width: "100%", maxWidth: 896 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 4 }}>
             Admin

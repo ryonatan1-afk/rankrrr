@@ -52,7 +52,7 @@ export default function NewCategoryPage() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-10">
-      <div className="w-full max-w-xl flex flex-col gap-8">
+      <div className="min-w-0 flex flex-col gap-8" style={{ width: "100%", maxWidth: 576 }}>
         {/* Header */}
         <div className="flex items-center gap-3">
           <button
