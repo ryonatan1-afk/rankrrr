@@ -73,7 +73,7 @@ export default async function Home() {
     <main className="flex-1 flex flex-col items-center justify-center px-4 py-16 relative">
       <MatrixRain />
 
-      <div className="relative z-10 w-full max-w-lg flex flex-col items-center gap-12">
+      <div className="relative z-10 w-full max-w-lg min-w-0 flex flex-col items-center gap-12">
         {/* Hero */}
         <div className="text-center flex flex-col items-center gap-6">
           <div style={{
