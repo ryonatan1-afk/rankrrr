@@ -33,7 +33,7 @@ export default async function CategoriesPage() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-10">
-      <div className="w-full max-w-2xl flex flex-col gap-8">
+      <div className="min-w-0 flex flex-col gap-8" style={{ width: "100%", maxWidth: 672 }}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">All Rankings</h1>
@@ -137,7 +137,7 @@ export default async function CategoriesPage() {
                         textDecoration: "none",
                       }}
                     >
-                      {done > 0 ? "Continue →" : "Vote →"}
+                      {done > 0 ? "Continue" : "Vote"}
                     </Link>
                   )}
                 </div>
