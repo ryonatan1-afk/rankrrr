@@ -70,10 +70,10 @@ export default async function Home() {
   const todayLabel = todayUTC.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center px-4 py-16 relative">
+    <main className="flex-1 flex flex-col items-center justify-center px-4 py-16 relative" style={{ overflowX: "clip" }}>
       <MatrixRain />
 
-      <div className="relative z-10 w-full max-w-lg min-w-0 flex flex-col items-center gap-12">
+      <div className="relative z-10 min-w-0 flex flex-col items-center gap-12" style={{ width: "100%", maxWidth: 512 }}>
         {/* Hero */}
         <div className="text-center flex flex-col items-center gap-6">
           <div style={{
