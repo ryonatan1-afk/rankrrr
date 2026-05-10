@@ -34,8 +34,8 @@ export default async function BracketPage({ params }: Props) {
   const bracketState = session?.bracketState as BracketState | null;
 
   return (
-    <main className="flex-1 flex flex-col items-center px-4 py-8">
-      <div className="min-w-0 flex flex-col gap-6" style={{ width: "100%", maxWidth: 768 }}>
+    <main className="flex-1 px-4 py-8">
+      <div className="min-w-0 flex flex-col gap-6" style={{ maxWidth: 768, margin: "0 auto" }}>
 
         {/* Header */}
         <div className="flex items-center gap-3">

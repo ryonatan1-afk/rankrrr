@@ -32,8 +32,8 @@ export default async function CategoriesPage() {
   const sessionMap = new Map(sessions.map((s) => [s.categoryId, s]));
 
   return (
-    <main className="flex-1 flex flex-col items-center px-4 py-10">
-      <div className="min-w-0 flex flex-col gap-8" style={{ width: "100%", maxWidth: 672 }}>
+    <main className="flex-1 px-4 py-10">
+      <div className="min-w-0 flex flex-col gap-8" style={{ maxWidth: 672, margin: "0 auto" }}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">All Rankings</h1>
