@@ -181,7 +181,7 @@ export default async function Home() {
                     boxShadow: "0 4px 24px rgba(99,102,241,0.45)", textDecoration: "none",
                   }}
                 >
-                  Vote Now →
+                  Vote Now
                 </Link>
 
                 {daily ? (
@@ -222,7 +222,7 @@ export default async function Home() {
 
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <Link href="/categories" style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none" }}>
-            Browse all past categories →
+            Browse all past categories
           </Link>
           {userStats && (userStats.role === "ADMIN" || userStats.role === "SUPERADMIN") && (
             <Link href="/admin" style={{
