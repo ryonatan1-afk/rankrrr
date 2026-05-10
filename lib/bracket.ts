@@ -24,30 +24,27 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export function generateBracket(itemIds: string[]): BracketState {
-  if (itemIds.length !== 8) throw new Error("Bracket requires exactly 8 items");
+  if (itemIds.length !== 16) throw new Error("Bracket requires exactly 16 items");
 
   const seeded = shuffle(itemIds);
-  const round1: BracketMatchup[] = [
-    { itemAId: seeded[0], itemBId: seeded[1], winnerId: null },
-    { itemAId: seeded[2], itemBId: seeded[3], winnerId: null },
-    { itemAId: seeded[4], itemBId: seeded[5], winnerId: null },
-    { itemAId: seeded[6], itemBId: seeded[7], winnerId: null },
-  ];
 
-  const round2: BracketMatchup[] = [
-    { itemAId: "", itemBId: "", winnerId: null },
-    { itemAId: "", itemBId: "", winnerId: null },
-  ];
+  // Round 1: 8 matchups (Round of 16)
+  const round1: BracketMatchup[] = [];
+  for (let i = 0; i < 16; i += 2) {
+    round1.push({ itemAId: seeded[i], itemBId: seeded[i + 1], winnerId: null });
+  }
 
-  const round3: BracketMatchup[] = [
-    { itemAId: "", itemBId: "", winnerId: null },
-  ];
+  // Rounds 2–4: slots filled in as winners advance
+  const round2: BracketMatchup[] = Array.from({ length: 4 }, () => ({ itemAId: "", itemBId: "", winnerId: null }));
+  const round3: BracketMatchup[] = Array.from({ length: 2 }, () => ({ itemAId: "", itemBId: "", winnerId: null }));
+  const round4: BracketMatchup[] = [{ itemAId: "", itemBId: "", winnerId: null }];
 
   return {
     rounds: [
       { round: 1, matchups: round1 },
       { round: 2, matchups: round2 },
       { round: 3, matchups: round3 },
+      { round: 4, matchups: round4 },
     ],
     currentRound: 1,
   };
@@ -70,6 +67,7 @@ export function getRoundProgress(state: BracketState): { done: number; total: nu
 
 export function applyVote(state: BracketState, winnerId: string, loserId: string): BracketState {
   const next: BracketState = JSON.parse(JSON.stringify(state));
+  const totalRounds = next.rounds.length;
   const round = next.rounds.find((r) => r.round === next.currentRound)!;
   const matchup = round.matchups.find(
     (m) =>
@@ -82,7 +80,7 @@ export function applyVote(state: BracketState, winnerId: string, loserId: string
   matchup.winnerId = winnerId;
 
   const allDone = round.matchups.every((m) => m.winnerId !== null);
-  if (allDone && next.currentRound < 3) {
+  if (allDone && next.currentRound < totalRounds) {
     const winners = round.matchups.map((m) => m.winnerId!);
     const nextRound = next.rounds.find((r) => r.round === next.currentRound + 1)!;
     for (let i = 0; i < nextRound.matchups.length; i++) {
@@ -100,6 +98,6 @@ export function isBracketComplete(state: BracketState): boolean {
 }
 
 export function getBracketWinner(state: BracketState): string | null {
-  const final = state.rounds.find((r) => r.round === 3);
+  const final = state.rounds[state.rounds.length - 1];
   return final?.matchups[0]?.winnerId ?? null;
 }

@@ -13,9 +13,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  categories Category[]
-  votes      Vote[]
-  sessions   UserSession[]
+  categories     Category[]
+  votes          Vote[]
+  sessions       UserSession[]
+  streak         Int  @default(0)
+  longestStreak  Int  @default(0)
+  totalCompleted Int  @default(0)
+  completions    DailyCompletion[]
 
   @@map("users")
 }
@@ -27,17 +31,19 @@ model Category {
   description String?
   emoji       String?
   location    String?        // optional geo tag (city, country, etc.)
-  isPublic    Boolean        @default(true)
-  status      CategoryStatus @default(ACTIVE)
-  createdAt   DateTime       @default(now())
+  isPublic     Boolean        @default(true)
+  status       CategoryStatus @default(ACTIVE)
+  featuredDate DateTime?      @unique @db.Date
+  createdAt    DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
   authorId String?
   author   User?   @relation(fields: [authorId], references: [id])
 
-  items    Item[]
-  votes    Vote[]
-  sessions UserSession[]
+  items       Item[]
+  votes       Vote[]
+  sessions    UserSession[]
+  completions DailyCompletion[]
 
   @@index([authorId])
   @@index([status])
@@ -107,6 +113,22 @@ model UserSession {
   @@unique([userId, categoryId, part])
   @@index([userId])
   @@map("user_sessions")
+}
+
+model DailyCompletion {
+  id          String   @id @default(cuid())
+  completedAt DateTime @default(now())
+  date        DateTime @db.Date
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId])
+  @@unique([userId, date])
+  @@index([userId])
+  @@map("daily_completions")
 }
 
 enum Role {

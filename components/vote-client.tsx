@@ -12,6 +12,7 @@ import {
   type BracketState,
 } from "@/lib/bracket";
 import { BracketTree } from "@/components/bracket-tree";
+import HowToModal from "@/components/how-to-modal";
 
 interface Item {
   id: string;
@@ -34,9 +35,9 @@ interface Props {
   categoryName: string;
   initialBracketState: BracketState;
   itemMap: Record<string, Item>;
-  part: number;
-  canStartPart2: boolean;
   crowdData?: CrowdItem[];
+  streak?: number;
+  totalCompleted?: number;
 }
 
 function getInitials(name: string): string {
@@ -199,18 +200,13 @@ function MatchupCard({
   );
 }
 
-export default function VoteClient({ categoryId, categorySlug, categoryName, initialBracketState, itemMap, part, crowdData }: Props) {
+export default function VoteClient({ categoryId, categorySlug, categoryName, initialBracketState, itemMap, crowdData, streak = 0, totalCompleted = 0 }: Props) {
   const router = useRouter();
   const [state, setState] = useState<BracketState>(initialBracketState);
   const [animPhase, setAnimPhase] = useState<"idle" | "selected" | "transitioning">("idle");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confetti, setConfetti] = useState<Array<{ id: number; x: number; y: number; color: string; angle: number; dist: number }>>([]);
   const [visible, setVisible] = useState(true);
-  const [showHowItWorks] = useState(() => {
-    const initialDone = initialBracketState.rounds
-      .reduce((s, r) => s + r.matchups.filter((m) => m.winnerId !== null).length, 0);
-    return initialDone === 0 && part === 1;
-  });
   const swipeStartX = useRef<number | null>(null);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
   const hasVoted = useRef(false);
@@ -237,7 +233,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     setConfetti(particles);
     setTimeout(() => setConfetti([]), 800);
 
-    const votePromise = submitVote(categoryId, winnerId, loserId, state.currentRound, part);
+    const votePromise = submitVote(categoryId, winnerId, loserId, state.currentRound);
     const FADE_OUT_DELAY = 300;
     const MIN_BLANK_MS = 120;
 
@@ -252,7 +248,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     setAnimPhase("idle");
     setSelectedId(null);
     setVisible(true);
-  }, [animPhase, categoryId, state.currentRound, part]);
+  }, [animPhase, categoryId, state.currentRound]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -281,16 +277,27 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
   };
 
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  const roundLabels = ["Quarter-finals", "Semi-finals", "Final"];
+  const roundLabels = ["Round of 16", "Quarter-finals", "Semi-finals", "Final"];
 
   const currentRoundMatchups = state.rounds[state.currentRound - 1]?.matchups ?? [];
   const completedInRound = currentRoundMatchups.filter((m) => m.winnerId !== null).length;
   const matchInRound = completedInRound + 1;
   const totalInRound = currentRoundMatchups.length;
-  const bracketLabel = `Bracket ${part} of 2`;
 
   if (isComplete && winner) {
-    const isLastPart = part === 2;
+    const crowdWisdomScore = (() => {
+      if (!crowdData || crowdData.length === 0) return null;
+      const crowdMap = new Map(crowdData.map(cd => [cd.itemId, cd.winRate]));
+      const matchups = state.rounds.flatMap(r => r.matchups).filter(m => m.winnerId !== null);
+      if (matchups.length === 0) return null;
+      const matching = matchups.filter(m => {
+        const aRate = crowdMap.get(m.itemAId) ?? 0;
+        const bRate = crowdMap.get(m.itemBId) ?? 0;
+        return m.winnerId === (aRate >= bRate ? m.itemAId : m.itemBId);
+      }).length;
+      return Math.round((matching / matchups.length) * 100);
+    })();
+
     const winnerCrowdRank = crowdData ? crowdData.findIndex((cd) => cd.itemId === winner.id) + 1 : 0;
     const crowdTop = crowdData && crowdData.length > 0 ? itemMap[crowdData[0].itemId] : null;
     const crowdAgreed = crowdData && crowdData.length > 0 && crowdData[0].itemId === winner.id;
@@ -298,63 +305,33 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     const shareUrl = `https://rankrrr.vercel.app/categories/${categorySlug}/vote`;
 
     return (
-      <div className="flex flex-col gap-8" style={{ animation: "fadeup 0.45s ease forwards" }}>
+      <>
+        <HowToModal />
+        <div className="flex flex-col gap-8" style={{ animation: "fadeup 0.45s ease forwards" }}>
         {/* Completion header */}
         <div className="flex flex-col items-center gap-4 text-center">
           <div style={{
             width: 72, height: 72, borderRadius: 20,
-            background: isLastPart ? "rgba(52,211,153,0.1)" : "rgba(99,102,241,0.1)",
-            border: `1px solid ${isLastPart ? "rgba(52,211,153,0.3)" : "rgba(99,102,241,0.3)"}`,
+            background: "rgba(52,211,153,0.1)",
+            border: "1px solid rgba(52,211,153,0.3)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 24, fontWeight: 800,
-            color: isLastPart ? "var(--green)" : "#818CF8",
-            boxShadow: isLastPart ? "0 8px 40px rgba(52,211,153,0.2)" : "0 8px 40px rgba(99,102,241,0.2)",
+            color: "var(--green)",
+            boxShadow: "0 8px 40px rgba(52,211,153,0.2)",
           }}>
             {getInitials(winner.name)}
           </div>
           <div>
             <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 6 }}>
-              {isLastPart ? "All done!" : "Bracket 1 complete"}
+              All done!
             </div>
             <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>
-              {isLastPart ? (
-                <><strong style={{ color: "#fff" }}>{winner.name}</strong> topped your bracket.</>
-              ) : (
-                <>Top of Bracket 1: <strong style={{ color: "#fff" }}>{winner.name}</strong></>
-              )}
+              <strong style={{ color: "#fff" }}>{winner.name}</strong> topped your bracket.
             </div>
           </div>
         </div>
 
-        {/* Continue to Bracket 2 — shown only after Bracket 1 */}
-        {!isLastPart && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <a
-              href={`/categories/${categorySlug}/vote?part=2`}
-              style={{
-                background: "linear-gradient(135deg, #6366F1, #8B5CF6)", color: "#fff",
-                borderRadius: 14, width: "100%", textAlign: "center",
-                padding: "15px 28px", fontSize: 15, fontWeight: 700,
-                boxShadow: "0 4px 24px rgba(99,102,241,0.45)", textDecoration: "none",
-                display: "block", border: "none",
-              }}
-            >
-              Continue to Bracket 2 →
-            </a>
-            <a
-              href={`/categories/${categorySlug}/leaderboard`}
-              style={{
-                display: "block", textAlign: "center",
-                fontSize: 13, color: "rgba(255,255,255,0.35)", textDecoration: "none",
-                padding: "8px",
-              }}
-            >
-              View leaderboard so far
-            </a>
-          </div>
-        )}
-
-        {/* You vs. crowd — shown on both brackets if crowd data exists */}
+        {/* You vs. crowd */}
         {crowdData && crowdData.length > 0 && (
           <div style={{
             background: "var(--surface)",
@@ -397,8 +374,59 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           </div>
         )}
 
-        {/* Share (WhatsApp only) — shown after both brackets */}
-        {isLastPart && (
+        {/* Crowd Wisdom Score */}
+        {crowdWisdomScore !== null && (() => {
+          const ringColor = crowdWisdomScore >= 70 ? "var(--green)" : crowdWisdomScore >= 40 ? "var(--accent)" : "#F87171";
+          const circumference = 2 * Math.PI * 44;
+          return (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+              <svg width="100" height="100" viewBox="0 0 100 100" aria-label={`Crowd wisdom score: ${crowdWisdomScore}%`}>
+                <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
+                <circle
+                  cx="50" cy="50" r="44" fill="none"
+                  stroke={ringColor} strokeWidth="8" strokeLinecap="round"
+                  strokeDasharray={`${circumference}`}
+                  strokeDashoffset={`${circumference * (1 - crowdWisdomScore / 100)}`}
+                  transform="rotate(-90 50 50)"
+                  style={{ transition: "stroke-dashoffset 1s ease" }}
+                />
+                <text x="50" y="50" textAnchor="middle" dominantBaseline="central"
+                  style={{ fontSize: 22, fontWeight: 800, fill: "#fff" }}>
+                  {crowdWisdomScore}%
+                </text>
+              </svg>
+              <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", maxWidth: 220 }}>
+                You agreed with the crowd{" "}
+                <strong style={{ color: "#fff" }}>{crowdWisdomScore}% of the time</strong>
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)" }}>
+                Crowd Wisdom Score
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Streak + total ranked */}
+        {(
+          <div style={{ display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap" }}>
+            {streak >= 2 && (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 24 }}>🔥</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{streak}</div>
+                <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>Day Streak</div>
+              </div>
+            )}
+            {totalCompleted > 0 && (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{totalCompleted}</div>
+                <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>Total Ranked</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Share (WhatsApp only) */}
+        {(
           <div style={{ display: "flex", justifyContent: "center" }}>
             <a
               href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
@@ -418,7 +446,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
         )}
 
         {/* Final actions */}
-        {isLastPart && (
+        {(
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
             <a
               href={`/categories/${categorySlug}/leaderboard`}
@@ -454,6 +482,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           <BracketTree state={state} itemMap={itemMap} />
         </div>
       </div>
+      </>
     );
   }
 
@@ -464,35 +493,21 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
   if (!itemA || !itemB) return null;
 
   return (
-    <div
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      className="flex flex-col gap-6"
-    >
+    <>
+      <HowToModal />
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="flex flex-col gap-6"
+      >
       <div aria-live="polite" aria-atomic="true" style={{ position:"absolute", width:1, height:1, padding:0, margin:-1, overflow:"hidden", clip:"rect(0,0,0,0)", whiteSpace:"nowrap", borderWidth:0 }}>
-        {`${bracketLabel}: ${roundLabels[state.currentRound - 1]}, match ${matchInRound} of ${totalInRound}. ${itemA.name} vs ${itemB.name}.`}
+        {`${roundLabels[state.currentRound - 1]}, match ${matchInRound} of ${totalInRound}. ${itemA.name} vs ${itemB.name}.`}
       </div>
-      {/* How it works — shown only on very first matchup of bracket 1 */}
-      {showHowItWorks && (
-        <div style={{
-          background: "rgba(99,102,241,0.07)",
-          border: "1px solid rgba(99,102,241,0.18)",
-          borderRadius: 12, padding: "12px 16px",
-          display: "flex", alignItems: "center", gap: 12,
-        }}>
-          <span style={{ fontSize: 18, flexShrink: 0 }}>ℹ️</span>
-          <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>
-            <strong style={{ color: "rgba(255,255,255,0.75)" }}>16 items, 2 brackets, 14 quick matchups.</strong>{" "}
-            Vote with arrow keys, click, or swipe.
-          </div>
-        </div>
-      )}
-
       {/* Progress */}
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <span style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 500 }}>
-            {bracketLabel} · {roundLabels[state.currentRound - 1]} — Match {matchInRound} of {totalInRound}
+            {roundLabels[state.currentRound - 1]} — Match {matchInRound} of {totalInRound}
           </span>
           <span style={{ fontSize: 11.5, color: "var(--accent)", fontWeight: 600 }}>{pct}% done</span>
         </div>
@@ -572,5 +587,6 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
         {confetti.map((p) => <ConfettiParticle key={p.id} {...p} />)}
       </div>
     </div>
+    </>
   );
 }

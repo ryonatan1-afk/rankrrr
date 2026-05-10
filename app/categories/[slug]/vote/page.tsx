@@ -3,20 +3,15 @@ import { getOrCreateSession } from "@/app/actions";
 import VoteClient from "@/components/vote-client";
 import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
-import { isBracketComplete } from "@/lib/bracket";
-import type { BracketState } from "@/lib/bracket";
 
 export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ part?: string }>;
 }
 
-export default async function VotePage({ params, searchParams }: Props) {
+export default async function VotePage({ params }: Props) {
   const { slug } = await params;
-  const { part: partParam } = await searchParams;
-  const part = partParam === "2" ? 2 : 1;
 
   const category = await db.category.findUnique({
     where: { slug },
@@ -24,12 +19,17 @@ export default async function VotePage({ params, searchParams }: Props) {
   });
   if (!category) notFound();
 
-  const [{ bracketState }, votes] = await Promise.all([
-    getOrCreateSession(slug, part as 1 | 2),
+  const { userId } = await auth();
+
+  const [{ bracketState }, votes, userStats] = await Promise.all([
+    getOrCreateSession(slug),
     db.vote.findMany({
       where: { categoryId: category.id },
       select: { itemAId: true, itemBId: true, winnerId: true },
     }),
+    userId
+      ? db.user.findUnique({ where: { id: userId }, select: { streak: true, totalCompleted: true } })
+      : Promise.resolve(null),
   ]);
 
   const itemMap = Object.fromEntries(category.items.map((i) => [i.id, i]));
@@ -51,18 +51,6 @@ export default async function VotePage({ params, searchParams }: Props) {
     .filter((cd) => cd.totalVotes > 0)
     .sort((a, b) => b.winRate - a.winRate);
 
-  // canStartPart2: part 1 bracket is done and part 2 doesn't exist yet
-  let canStartPart2 = false;
-  if (part === 1 && isBracketComplete(bracketState)) {
-    const { userId } = await auth();
-    if (userId) {
-      const part2 = await db.userSession.findUnique({
-        where: { userId_categoryId_part: { userId, categoryId: category.id, part: 2 } },
-      });
-      canStartPart2 = !part2;
-    }
-  }
-
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-8">
       <div className="w-full max-w-2xl flex flex-col gap-6">
@@ -79,18 +67,7 @@ export default async function VotePage({ params, searchParams }: Props) {
           >
             ← Back
           </a>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span className="font-semibold tracking-tight">{category.name}</span>
-            <span style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: "0.08em",
-              color: part === 2 ? "#818CF8" : "rgba(255,255,255,0.3)",
-              background: part === 2 ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.04)",
-              border: `1px solid ${part === 2 ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.08)"}`,
-              padding: "2px 8px", borderRadius: 99,
-            }}>
-              Bracket {part} of 2
-            </span>
-          </div>
+          <span className="font-semibold tracking-tight">{category.name}</span>
         </div>
 
         <VoteClient
@@ -99,9 +76,9 @@ export default async function VotePage({ params, searchParams }: Props) {
           categoryName={category.name}
           initialBracketState={bracketState}
           itemMap={itemMap}
-          part={part}
-          canStartPart2={canStartPart2}
           crowdData={crowdData}
+          streak={userStats?.streak ?? 0}
+          totalCompleted={userStats?.totalCompleted ?? 0}
         />
       </div>
     </main>

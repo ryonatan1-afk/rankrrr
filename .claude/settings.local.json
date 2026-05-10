@@ -29,7 +29,18 @@
       "Bash(vercel inspect *)",
       "Bash(vercel domains *)",
       "Bash(vercel *)",
-      "Bash(taskkill *)"
+      "Bash(taskkill *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\Rankrrr\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(npx next *)",
+      "Bash(npx dotenv *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\Rankrrr\" -Recurse -Filter \"schema.prisma\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\Rankrrr\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\Rankrrr\" -Recurse -Filter \"schema.prisma\" -ErrorAction SilentlyContinue)",
+      "Bash(xargs grep -l \"daily\\\\|schedule\\\\|cron\")"
     ]
   }
 }

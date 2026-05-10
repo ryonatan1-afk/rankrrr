@@ -1,9 +1,9 @@
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { CategoryLink } from "@/components/category-link";
 import MatrixRain from "@/components/matrix-rain";
-import OnboardingTip from "@/components/onboarding-tip";
 import { VoteCounter } from "@/components/vote-counter";
+import DailyCountdown from "@/components/daily-countdown";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ async function getTrendingStat(): Promise<string | null> {
       SELECT "itemAId", "itemBId",
         COUNT(*) as total,
         SUM(CASE WHEN "winnerId" = "itemAId" THEN 1 ELSE 0 END)::int as "aWins"
-      FROM "Vote"
+      FROM votes
       GROUP BY "itemAId", "itemBId"
       HAVING COUNT(*) >= 5
       ORDER BY total DESC
@@ -43,15 +43,31 @@ async function getTrendingStat(): Promise<string | null> {
 }
 
 export default async function Home() {
-  const [all, totalVotes, trendingStat] = await Promise.all([
-    db.category.findMany({
-      where: { status: "ACTIVE" },
+  const { userId } = await auth();
+
+  const todayUTC = new Date();
+  todayUTC.setUTCHours(0, 0, 0, 0);
+
+  const [daily, totalVotes, trendingStat, userStats] = await Promise.all([
+    db.category.findFirst({
+      where: { status: "ACTIVE", featuredDate: todayUTC },
       include: { _count: { select: { votes: true } } },
     }),
     db.vote.count(),
     getTrendingStat(),
+    userId
+      ? db.user.findUnique({ where: { id: userId }, select: { streak: true, longestStreak: true, totalCompleted: true, role: true } })
+      : Promise.resolve(null),
   ]);
-  const categories = all.sort(() => Math.random() - 0.5).slice(0, 3);
+
+  // Fallback: show most-recent active category if no daily is scheduled today
+  const featured = daily ?? await db.category.findFirst({
+    where: { status: "ACTIVE" },
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { votes: true } } },
+  });
+
+  const todayLabel = todayUTC.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 
   return (
     <main className="flex-1 flex flex-col items-center justify-center px-4 py-16 relative">
@@ -85,48 +101,141 @@ export default async function Home() {
           </div>
         </div>
 
-        <OnboardingTip />
-
-        {/* Category list */}
-        <div style={{
-          width: "100%", background: "var(--surface)",
-          border: "1px solid var(--border)", borderRadius: 22, padding: "20px 18px",
-          display: "flex", flexDirection: "column", gap: 10,
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
-            Start ranking
-          </div>
-          {categories.map((cat) => (
-            <CategoryLink
-              key={cat.id}
-              href={`/categories/${cat.slug}/vote`}
-              name={cat.name}
-              voteCount={cat._count.votes}
-            />
-          ))}
-          <Link
-            href="/categories/new"
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "14px", borderRadius: 14,
-              border: "1px dashed rgba(99,102,241,0.35)",
-              background: "transparent", textDecoration: "none", transition: "all 0.15s ease",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 22 }}>✨</span>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "#818CF8", letterSpacing: "-0.02em" }}>Generate with AI</div>
-                <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>Type any topic. Claude builds it.</div>
+        {/* Daily Ranking card */}
+        <div style={{ width: "100%" }}>
+          {/* User stats row */}
+          {userStats && (
+            <div style={{
+              display: "flex", justifyContent: "center", gap: 24, marginBottom: 10,
+            }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: userStats.streak > 0 ? "#FBBF24" : "rgba(255,255,255,0.4)", lineHeight: 1 }}>
+                  {userStats.streak > 0 ? `🔥 ${userStats.streak}` : "—"}
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>
+                  Day Streak
+                </div>
               </div>
+              <div style={{ width: 1, background: "rgba(255,255,255,0.06)", alignSelf: "stretch" }} />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: userStats.totalCompleted > 0 ? "#fff" : "rgba(255,255,255,0.4)", lineHeight: 1 }}>
+                  {userStats.totalCompleted || "—"}
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>
+                  Ranked
+                </div>
+              </div>
+              {userStats.longestStreak > 1 && (
+                <>
+                  <div style={{ width: 1, background: "rgba(255,255,255,0.06)", alignSelf: "stretch" }} />
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "rgba(255,255,255,0.4)", lineHeight: 1 }}>
+                      {userStats.longestStreak}
+                    </div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>
+                      Best Streak
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-            <span style={{ fontSize: 15, color: "#818CF8" }}>→</span>
-          </Link>
+          )}
+
+          <div style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 22, padding: "20px 20px",
+            display: "flex", flexDirection: "column", gap: 14,
+          }}>
+            {/* Section label */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                📅 Daily Ranking
+              </span>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>·</span>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>{todayLabel}</span>
+            </div>
+
+            {featured ? (
+              <>
+                {/* Category info */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <span style={{ fontSize: 36 }}>{featured.emoji ?? "🏆"}</span>
+                  <div>
+                    <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", color: "#fff" }}>
+                      {featured.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>
+                      {featured._count.votes} votes
+                    </div>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <Link
+                  href={`/categories/${featured.slug}/vote`}
+                  style={{
+                    display: "block", textAlign: "center",
+                    background: "linear-gradient(135deg, #6366F1, #8B5CF6)", color: "#fff",
+                    borderRadius: 14, padding: "14px 28px", fontSize: 15, fontWeight: 700,
+                    boxShadow: "0 4px 24px rgba(99,102,241,0.45)", textDecoration: "none",
+                  }}
+                >
+                  Vote Now →
+                </Link>
+
+                {daily ? (
+                  <DailyCountdown />
+                ) : (
+                  <div style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.25)" }}>
+                    Coming tomorrow!
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 14, padding: "20px 0" }}>
+                No categories yet. <Link href="/categories/new" style={{ color: "#818CF8" }}>Create one →</Link>
+              </div>
+            )}
+          </div>
         </div>
 
-        <Link href="/categories" style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none" }}>
-          Browse all categories →
+        {/* Generate with AI */}
+        <Link
+          href="/categories/new"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            width: "100%", padding: "14px", borderRadius: 14,
+            border: "1px dashed rgba(99,102,241,0.35)",
+            background: "transparent", textDecoration: "none", transition: "all 0.15s ease",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 22 }}>✨</span>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#818CF8", letterSpacing: "-0.02em" }}>Generate with AI</div>
+              <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>Type any topic. Claude builds it.</div>
+            </div>
+          </div>
+          <span style={{ fontSize: 15, color: "#818CF8" }}>→</span>
         </Link>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <Link href="/categories" style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none" }}>
+            Browse all past categories →
+          </Link>
+          {userStats && (userStats.role === "ADMIN" || userStats.role === "SUPERADMIN") && (
+            <Link href="/admin" style={{
+              fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.3)",
+              textDecoration: "none", letterSpacing: "0.04em",
+              padding: "4px 10px", borderRadius: 8,
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.03)",
+            }}>
+              ⚙ Admin
+            </Link>
+          )}
+        </div>
 
         <VoteCounter total={totalVotes} />
       </div>

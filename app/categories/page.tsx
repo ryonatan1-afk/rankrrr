@@ -12,9 +12,12 @@ function getInitial(name: string): string {
 export default async function CategoriesPage() {
   const { userId } = await auth();
 
+  const todayUTC = new Date();
+  todayUTC.setUTCHours(0, 0, 0, 0);
+
   const [categories, sessions] = await Promise.all([
     db.category.findMany({
-      where: { status: "ACTIVE" },
+      where: { status: "ACTIVE", NOT: { featuredDate: todayUTC } },
       include: { _count: { select: { votes: true, items: true } } },
       orderBy: { createdAt: "asc" },
     }),
@@ -33,9 +36,9 @@ export default async function CategoriesPage() {
       <div className="w-full max-w-2xl flex flex-col gap-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Categories</h1>
+            <h1 className="text-2xl font-bold tracking-tight">All Rankings</h1>
             <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-              Pick one and start ranking.
+              Every category, past and present.
             </p>
           </div>
           <Link
@@ -54,11 +57,12 @@ export default async function CategoriesPage() {
         <div className="flex flex-col gap-3">
           {categories.map((cat) => {
             const session = sessionMap.get(cat.id);
-            const totalMatchups = 7;
-            const done = session
-              ? (session.bracketState as any)?.rounds
-                  ?.flatMap((r: any) => r.matchups)
-                  ?.filter((m: any) => m.winnerId !== null).length ?? 0
+            const bracketRounds = (session?.bracketState as any)?.rounds as any[] | undefined;
+            const totalMatchups = bracketRounds
+              ? bracketRounds.reduce((sum: number, r: any) => sum + r.matchups.length, 0)
+              : 15;
+            const done = bracketRounds
+              ? bracketRounds.flatMap((r: any) => r.matchups).filter((m: any) => m.winnerId !== null).length
               : 0;
             const pct = totalMatchups > 0 ? Math.round((done / totalMatchups) * 100) : 0;
             const isComplete = done >= totalMatchups;

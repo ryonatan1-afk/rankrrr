@@ -14,13 +14,24 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const categories = await db.category.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: { select: { votes: true, items: true } },
-      author: { select: { email: true } },
-    },
-  });
+  const todayUTC = new Date();
+  todayUTC.setUTCHours(0, 0, 0, 0);
+
+  const [categories, scheduled] = await Promise.all([
+    db.category.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { votes: true, items: true } },
+        author: { select: { email: true } },
+      },
+    }),
+    db.category.findMany({
+      where: { featuredDate: { gte: todayUTC }, status: { not: "DELETED" } },
+      select: { id: true, name: true, emoji: true, featuredDate: true },
+      orderBy: { featuredDate: "asc" },
+      take: 14,
+    }),
+  ]);
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-8">
@@ -33,6 +44,42 @@ export default async function AdminPage() {
             {categories.length} categories total
           </p>
         </div>
+
+        {/* Upcoming schedule */}
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderRadius: 14, padding: "16px 18px",
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: 14 }}>
+            📅 Upcoming Schedule
+          </div>
+          {scheduled.length === 0 ? (
+            <p style={{ fontSize: 13, color: "var(--muted)" }}>No dailies scheduled. Use the date picker on any category row below.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {scheduled.map((cat) => {
+                const d = new Date(cat.featuredDate!);
+                const isToday = d.getTime() === todayUTC.getTime();
+                const label = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+                return (
+                  <div key={cat.id} style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "8px 10px", borderRadius: 8,
+                    background: isToday ? "rgba(99,102,241,0.08)" : "rgba(255,255,255,0.02)",
+                    border: `1px solid ${isToday ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.05)"}`,
+                  }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: isToday ? "#818CF8" : "rgba(255,255,255,0.3)", width: 90, flexShrink: 0 }}>
+                      {isToday ? "Today" : label}
+                    </span>
+                    <span style={{ fontSize: 16 }}>{cat.emoji ?? "🏆"}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: isToday ? "#fff" : "rgba(255,255,255,0.6)" }}>{cat.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <AdminClient categories={categories} />
       </div>
     </main>

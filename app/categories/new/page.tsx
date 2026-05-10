@@ -6,6 +6,7 @@ import { generateCategoryAction, createCategoryAction } from "@/app/actions";
 import type { GeneratedCategory } from "@/lib/ai/generate-category";
 
 const PLACEHOLDER_EXAMPLES = [
+  "e.g. Pizza toppings",
   "Be specific: '90s sitcoms' beats 'TV shows'",
   "Be specific: 'Pixar films' beats 'animated movies'",
   "Be specific: 'hip-hop albums from the 2000s' beats 'rap music'",

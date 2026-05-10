@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateCategoryStatus, updateCategoryMeta } from "./actions";
+import Image from "next/image";
+import { updateCategoryStatus, updateCategoryMeta, updateFeaturedDate, destroyCategory, getCategoryItems, refreshItemImage, setItemImageUrl } from "./actions";
 
 type Status = "ACTIVE" | "HIDDEN" | "DELETED";
 
@@ -11,6 +12,7 @@ interface Category {
   emoji: string | null;
   status: Status;
   createdAt: Date;
+  featuredDate: Date | null;
   _count: { votes: number; items: number };
   author: { email: string } | null;
 }
@@ -36,9 +38,23 @@ function StatusBadge({ status }: { status: Status }) {
 
 function CategoryRow({ cat }: { cat: Category }) {
   const [isPending, startTransition] = useTransition();
+  const [isPendingDate, startDateTransition] = useTransition();
+  const [confirmDestroy, setConfirmDestroy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(cat.name);
   const [emoji, setEmoji] = useState(cat.emoji ?? "");
+  const [dateValue, setDateValue] = useState(
+    cat.featuredDate ? new Date(cat.featuredDate).toISOString().slice(0, 10) : ""
+  );
+
+  function handleSetDaily() {
+    startDateTransition(() => updateFeaturedDate(cat.id, dateValue || null));
+  }
+
+  function handleClearDaily() {
+    setDateValue("");
+    startDateTransition(() => updateFeaturedDate(cat.id, null));
+  }
 
   function handleStatus(status: Status) {
     startTransition(() => updateCategoryStatus(cat.id, status));
@@ -99,6 +115,26 @@ function CategoryRow({ cat }: { cat: Category }) {
             {cat.author && <span>by {cat.author.email}</span>}
             <span>{new Date(cat.createdAt).toLocaleDateString()}</span>
           </div>
+          {/* Daily date picker */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap", opacity: isPendingDate ? 0.6 : 1 }}>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Daily:</span>
+            <input
+              type="date"
+              value={dateValue}
+              onChange={e => setDateValue(e.target.value)}
+              aria-label="Set as daily category date"
+              style={{
+                fontSize: 11.5, background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6,
+                color: dateValue ? "#fff" : "rgba(255,255,255,0.25)", padding: "3px 8px",
+                colorScheme: "dark",
+              }}
+            />
+            <ActionButton onClick={handleSetDaily} color="#818CF8">Set Daily</ActionButton>
+            {cat.featuredDate && (
+              <ActionButton onClick={handleClearDaily}>Clear</ActionButton>
+            )}
+          </div>
         </div>
 
         {/* Actions */}
@@ -114,10 +150,19 @@ function CategoryRow({ cat }: { cat: Category }) {
               {cat.status !== "ACTIVE"  && <ActionButton onClick={() => handleStatus("ACTIVE")}  color="var(--green)">Active</ActionButton>}
               {cat.status !== "HIDDEN"  && <ActionButton onClick={() => handleStatus("HIDDEN")}  color="#FBBF24">Hide</ActionButton>}
               {cat.status !== "DELETED" && <ActionButton onClick={() => handleStatus("DELETED")} color="var(--red)">Delete</ActionButton>}
+              {confirmDestroy ? (
+                <>
+                  <ActionButton color="var(--red)" onClick={() => startTransition(() => destroyCategory(cat.id))}>Confirm</ActionButton>
+                  <ActionButton onClick={() => setConfirmDestroy(false)}>Cancel</ActionButton>
+                </>
+              ) : (
+                <ActionButton color="var(--red)" onClick={() => setConfirmDestroy(true)}>🗑 Destroy</ActionButton>
+              )}
             </>
           )}
         </div>
       </div>
+      <ItemsPanel categoryId={cat.id} categoryName={cat.name} />
     </div>
   );
 }
@@ -140,6 +185,122 @@ function ActionButton({ onClick, color, children }: {
     >
       {children}
     </button>
+  );
+}
+
+type AdminItem = { id: string; name: string; emoji: string | null; imageUrl: string | null };
+
+function ItemRow({ item, categoryName }: { item: AdminItem; categoryName: string }) {
+  const [imageUrl, setImageUrl] = useState(item.imageUrl ?? "");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSaving, startSaveTransition] = useTransition();
+
+  async function handleRefresh() {
+    setIsRefreshing(true);
+    try {
+      const result = await refreshItemImage(item.id);
+      setImageUrl(result.imageUrl ?? "");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  function handleSaveUrl() {
+    startSaveTransition(() => setItemImageUrl(item.id, imageUrl));
+  }
+
+  const busy = isRefreshing || isSaving;
+  const displayUrl = imageUrl || null;
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "flex-start", gap: 10,
+      padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.04)",
+      opacity: busy ? 0.6 : 1, transition: "opacity 0.15s",
+    }}>
+      {/* Thumbnail */}
+      <div style={{
+        width: 52, height: 52, borderRadius: 8, flexShrink: 0, overflow: "hidden",
+        background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+        position: "relative",
+      }}>
+        {displayUrl && (
+          <Image src={displayUrl} alt={item.name} fill sizes="52px" style={{ objectFit: "cover" }} unoptimized />
+        )}
+      </div>
+
+      {/* Name + controls */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+          {item.emoji} {item.name}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            value={imageUrl}
+            onChange={e => setImageUrl(e.target.value)}
+            placeholder="Paste image URL…"
+            style={{
+              flex: 1, minWidth: 140, fontSize: 11, padding: "4px 8px", borderRadius: 6,
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+              color: "#fff",
+            }}
+          />
+          <ActionButton onClick={handleSaveUrl} color="var(--green)">{isSaving ? "Saving…" : "Save"}</ActionButton>
+          <ActionButton onClick={handleRefresh} color="#818CF8">{isRefreshing ? "…" : "🔄 AI Fix"}</ActionButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ItemsPanel({ categoryId, categoryName }: { categoryId: string; categoryName: string }) {
+  const [items, setItems] = useState<AdminItem[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const data = await getCategoryItems(categoryId);
+      setItems(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (items === null) {
+    return (
+      <button
+        onClick={load}
+        disabled={loading}
+        style={{
+          marginTop: 10, fontSize: 11.5, fontWeight: 600, padding: "5px 12px", borderRadius: 8,
+          cursor: loading ? "default" : "pointer",
+          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+          color: "rgba(255,255,255,0.4)", transition: "all 0.15s",
+        }}
+      >
+        {loading ? "Loading…" : "▸ View Items"}
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          Items ({items.length})
+        </span>
+        <button
+          onClick={() => setItems(null)}
+          style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", background: "none", border: "none", cursor: "pointer" }}
+        >
+          ▴ Hide
+        </button>
+      </div>
+      {items.map(item => (
+        <ItemRow key={item.id} item={item} categoryName={categoryName} />
+      ))}
+    </div>
   );
 }
 

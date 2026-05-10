@@ -4,8 +4,9 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { db } from "@/lib/db";
-import { applyVote, generateBracket, type BracketState } from "@/lib/bracket";
+import { applyVote, generateBracket, isBracketComplete, type BracketState } from "@/lib/bracket";
 import { generateCategory, type GeneratedCategory } from "@/lib/ai/generate-category";
+import { generateImageSearchQuery } from "@/lib/ai/image-search-query";
 import { fetchWikipediaThumbnail } from "@/lib/wikipedia";
 
 const ITEM_COLORS = ["#6366F1", "#EC4899", "#F59E0B", "#10B981", "#F97316", "#8B5CF6", "#06B6D4", "#EF4444"];
@@ -28,7 +29,6 @@ export async function submitVote(
   winnerId: string,
   loserId: string,
   round: number,
-  part: number = 1
 ) {
   const user = await ensureUser();
 
@@ -41,7 +41,7 @@ export async function submitVote(
 
   // Load and update bracket state
   const session = await db.userSession.findUnique({
-    where: { userId_categoryId_part: { userId: user.id, categoryId, part } },
+    where: { userId_categoryId_part: { userId: user.id, categoryId, part: 1 } },
   });
 
   if (!session) throw new Error("No session found");
@@ -50,12 +50,16 @@ export async function submitVote(
   const nextState = applyVote(state, winnerId, loserId);
 
   await db.userSession.update({
-    where: { userId_categoryId_part: { userId: user.id, categoryId, part } },
+    where: { userId_categoryId_part: { userId: user.id, categoryId, part: 1 } },
     data: {
       bracketState: nextState as any,
       currentRound: nextState.currentRound,
     },
   });
+
+  if (isBracketComplete(nextState)) {
+    after(async () => { await recordCompletion(user.id, categoryId); });
+  }
 
   return nextState;
 }
@@ -104,7 +108,8 @@ export async function createCategoryAction(data: GeneratedCategory): Promise<{ s
   after(async () => {
     await Promise.all(
       category.items.map(async (item) => {
-        const imageUrl = await fetchWikipediaThumbnail(item.name, data.name);
+        const searchQuery = await generateImageSearchQuery(item.name, data.name);
+        const imageUrl = await fetchWikipediaThumbnail(searchQuery);
         if (imageUrl) {
           await db.item.update({ where: { id: item.id }, data: { imageUrl } });
         }
@@ -115,7 +120,7 @@ export async function createCategoryAction(data: GeneratedCategory): Promise<{ s
   return { slug };
 }
 
-export async function getOrCreateSession(categorySlug: string, part: 1 | 2 = 1) {
+export async function getOrCreateSession(categorySlug: string) {
   const user = await ensureUser();
 
   const category = await db.category.findUnique({
@@ -125,42 +130,18 @@ export async function getOrCreateSession(categorySlug: string, part: 1 | 2 = 1) 
   if (!category) throw new Error("Category not found");
 
   let session = await db.userSession.findUnique({
-    where: { userId_categoryId_part: { userId: user.id, categoryId: category.id, part } },
+    where: { userId_categoryId_part: { userId: user.id, categoryId: category.id, part: 1 } },
   });
 
   if (!session) {
-    let itemIds: string[];
-
-    if (part === 1) {
-      const allIds = category.items.map((i: { id: string }) => i.id);
-      // Fisher-Yates shuffle then take first 8
-      const shuffled = [...allIds];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      itemIds = shuffled.slice(0, 8);
-    } else {
-      // Part 2: use items not in part 1
-      const part1 = await db.userSession.findUnique({
-        where: { userId_categoryId_part: { userId: user.id, categoryId: category.id, part: 1 } },
-      });
-      if (!part1) throw new Error("Complete Part 1 first");
-      const used = new Set(part1.usedItemIds as string[]);
-      itemIds = category.items
-        .map((i: { id: string }) => i.id)
-        .filter((id: string) => !used.has(id))
-        .slice(0, 8);
-      if (itemIds.length < 8) throw new Error("Not enough items for Part 2");
-    }
-
+    const itemIds = category.items.map((i: { id: string }) => i.id);
     const bracket = generateBracket(itemIds);
     try {
       session = await db.userSession.create({
         data: {
           userId: user.id,
           categoryId: category.id,
-          part,
+          part: 1,
           currentRound: 1,
           bracketState: bracket as any,
           usedItemIds: itemIds as any,
@@ -170,7 +151,7 @@ export async function getOrCreateSession(categorySlug: string, part: 1 | 2 = 1) 
       // P2002 = unique constraint — concurrent request already created it
       if (e?.code !== "P2002") throw e;
       session = await db.userSession.findUnique({
-        where: { userId_categoryId_part: { userId: user.id, categoryId: category.id, part } },
+        where: { userId_categoryId_part: { userId: user.id, categoryId: category.id, part: 1 } },
       });
       if (!session) throw e;
     }
@@ -194,4 +175,73 @@ export async function resetSessionAction(categorySlug: string): Promise<void> {
   });
 
   revalidatePath("/categories");
+}
+
+async function recordCompletion(userId: string, categoryId: string) {
+  const category = await db.category.findUnique({ where: { id: categoryId }, select: { featuredDate: true } });
+  if (!category?.featuredDate) return; // not a daily category, skip streak tracking
+
+  await db.dailyCompletion.upsert({
+    where: { userId_categoryId: { userId, categoryId } },
+    create: { userId, categoryId, date: category.featuredDate },
+    update: {},
+  });
+
+  await recomputeStreak(userId);
+}
+
+async function recomputeStreak(userId: string) {
+  const completions = await db.dailyCompletion.findMany({
+    where: { userId },
+    select: { date: true },
+    orderBy: { date: "desc" },
+  });
+
+  const dates = completions.map(c => {
+    const d = new Date(c.date);
+    d.setUTCHours(0, 0, 0, 0);
+    return d.getTime();
+  });
+
+  const DAY_MS = 86_400_000;
+  const todayUTC = new Date();
+  todayUTC.setUTCHours(0, 0, 0, 0);
+  const today = todayUTC.getTime();
+
+  // Compute current streak — walk backward from today
+  let streak = 0;
+  let expected = today;
+  for (const ts of dates) {
+    if (ts === expected) {
+      streak++;
+      expected -= DAY_MS;
+    } else if (ts < expected) {
+      break; // gap found
+    }
+    // ts > expected shouldn't happen (ordered desc), skip
+  }
+
+  // Compute longest streak
+  let longestStreak = 0;
+  let run = 0;
+  let prev: number | null = null;
+  for (const ts of [...dates].reverse()) {
+    if (prev === null || ts === prev + DAY_MS) {
+      run++;
+    } else {
+      longestStreak = Math.max(longestStreak, run);
+      run = 1;
+    }
+    prev = ts;
+  }
+  longestStreak = Math.max(longestStreak, run);
+
+  // Total completed = all Part 2 sessions that are fully done
+  const part1Sessions = await db.userSession.findMany({
+    where: { userId, part: 1 },
+    select: { bracketState: true },
+  });
+  const totalCompleted = part1Sessions.filter(s => isBracketComplete(s.bracketState as unknown as BracketState)).length;
+
+  await db.user.update({ where: { id: userId }, data: { streak, longestStreak, totalCompleted } });
 }

@@ -1,8 +1,7 @@
 const HEADERS = { "User-Agent": "Rankrrr/1.0 (https://rankrrr.vercel.app)" };
 
-export async function fetchWikipediaThumbnail(name: string, context?: string): Promise<string | null> {
+export async function fetchWikipediaThumbnail(query: string): Promise<string | null> {
   try {
-    const query = context ? `${name} ${context}` : name;
 
     // Full-text search handles disambiguation naturally (e.g. "Pinocchio Disney film" → "Pinocchio (1940 film)")
     const searchRes = await fetch(

@@ -88,7 +88,7 @@ function RoundLabel({ children }: { children: React.ReactNode }) {
 
 // Vertical compact view for small screens
 function VerticalBracket({ state, itemMap }: BracketTreeProps) {
-  const roundNames = ["Quarter-finals", "Semi-finals", "Final"];
+  const roundNames = ["Round of 16", "Quarter-finals", "Semi-finals", "Final"];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {state.rounds.map((round, ri) => (
@@ -97,7 +97,7 @@ function VerticalBracket({ state, itemMap }: BracketTreeProps) {
             fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
             color: "rgba(255,255,255,0.25)", marginBottom: 8,
           }}>
-            {roundNames[ri]}
+            {roundNames[ri] ?? `Round ${ri + 1}`}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {round.matchups.map((m, mi) => {
@@ -145,17 +145,18 @@ function VerticalBracket({ state, itemMap }: BracketTreeProps) {
 }
 
 export function BracketTree({ state, itemMap }: BracketTreeProps) {
-  const r1 = state.rounds[0].matchups;
-  const r2 = state.rounds[1].matchups;
-  const r3 = state.rounds[2].matchups;
-  const champion = r3[0].winnerId ? itemMap[r3[0].winnerId] : null;
+  const r1 = state.rounds[0].matchups; // 8 matchups — Round of 16
+  const r2 = state.rounds[1].matchups; // 4 matchups — QF
+  const r3 = state.rounds[2].matchups; // 2 matchups — SF
+  const r4 = state.rounds[3].matchups; // 1 matchup  — Final
+  const champion = r4[0].winnerId ? itemMap[r4[0].winnerId] : null;
 
   return (
     <>
       <style>{`
         .bracket-desktop { display: flex; }
         .bracket-mobile  { display: none; }
-        @media (max-width: 620px) {
+        @media (max-width: 700px) {
           .bracket-desktop { display: none; }
           .bracket-mobile  { display: block; }
         }
@@ -163,11 +164,11 @@ export function BracketTree({ state, itemMap }: BracketTreeProps) {
 
       {/* Desktop: horizontal bracket */}
       <div className="bracket-desktop" style={{ overflowX: "auto", paddingBottom: 4 }}>
-        <div style={{ display: "flex", alignItems: "stretch", minHeight: 280 }}>
+        <div style={{ display: "flex", alignItems: "stretch", minHeight: 400 }}>
 
-          {/* QF */}
+          {/* R16 */}
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <RoundLabel>QF</RoundLabel>
+            <RoundLabel>R16</RoundLabel>
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
               {r1.map((m, i) => (
                 <div key={i} style={{ flex: 1, display: "flex", alignItems: "center" }}>
@@ -177,7 +178,30 @@ export function BracketTree({ state, itemMap }: BracketTreeProps) {
             </div>
           </div>
 
-          {/* QF → SF connectors */}
+          {/* R16 → QF connectors (4 connectors for 8 → 4) */}
+          <div style={{ display: "flex", flexDirection: "column", alignSelf: "stretch" }}>
+            <div style={{ height: LABEL_H, flexShrink: 0 }} />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              <Connector />
+              <Connector />
+              <Connector />
+              <Connector />
+            </div>
+          </div>
+
+          {/* QF */}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <RoundLabel>QF</RoundLabel>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              {r2.map((m, i) => (
+                <div key={i} style={{ flex: 1, display: "flex", alignItems: "center" }}>
+                  <MatchupBlock matchup={m} itemMap={itemMap} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* QF → SF connectors (2 connectors for 4 → 2) */}
           <div style={{ display: "flex", flexDirection: "column", alignSelf: "stretch" }}>
             <div style={{ height: LABEL_H, flexShrink: 0 }} />
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
@@ -190,7 +214,7 @@ export function BracketTree({ state, itemMap }: BracketTreeProps) {
           <div style={{ display: "flex", flexDirection: "column" }}>
             <RoundLabel>SF</RoundLabel>
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              {r2.map((m, i) => (
+              {r3.map((m, i) => (
                 <div key={i} style={{ flex: 1, display: "flex", alignItems: "center" }}>
                   <MatchupBlock matchup={m} itemMap={itemMap} />
                 </div>
@@ -208,7 +232,7 @@ export function BracketTree({ state, itemMap }: BracketTreeProps) {
           <div style={{ display: "flex", flexDirection: "column" }}>
             <RoundLabel>Final</RoundLabel>
             <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-              <MatchupBlock matchup={r3[0]} itemMap={itemMap} />
+              <MatchupBlock matchup={r4[0]} itemMap={itemMap} />
             </div>
           </div>
 
