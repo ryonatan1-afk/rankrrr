@@ -79,94 +79,91 @@ function CategoryRow({ cat }: { cat: Category }) {
       borderRadius: 12, padding: "14px 16px",
       opacity: isPending ? 0.6 : 1, transition: "opacity 0.15s",
     }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-
-        {/* Emoji + name */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {editing ? (
-            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-              <input
-                value={emoji}
-                onChange={e => setEmoji(e.target.value)}
-                aria-label="Category emoji"
-                style={{
-                  width: 44, textAlign: "center", fontSize: 18,
-                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 8, padding: "6px 4px", color: "#fff",
-                }}
-              />
-              <input
-                value={name}
-                onChange={e => setName(e.target.value)}
-                aria-label="Category name"
-                style={{
-                  flex: 1, fontSize: 14, fontWeight: 600,
-                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 8, padding: "6px 10px", color: "#fff",
-                }}
-              />
-            </div>
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 18 }}>{cat.emoji}</span>
-              <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.02em" }}>{cat.name}</span>
-              <StatusBadge status={cat.status} />
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 16, fontSize: 11.5, color: "rgba(255,255,255,0.3)" }}>
-            <span>{cat._count.votes} votes</span>
-            <span>{cat._count.items} items</span>
-            {cat.author && <span>by {cat.author.email}</span>}
-            <span>{new Date(cat.createdAt).toLocaleDateString()}</span>
-          </div>
-          {/* Daily date picker */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap", opacity: isPendingDate ? 0.6 : 1 }}>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Daily:</span>
+      {/* Name + meta */}
+      <div style={{ minWidth: 0 }}>
+        {editing ? (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
             <input
-              type="date"
-              value={dateValue}
-              onChange={e => setDateValue(e.target.value)}
-              aria-label="Set as daily category date"
+              value={emoji}
+              onChange={e => setEmoji(e.target.value)}
+              aria-label="Category emoji"
               style={{
-                fontSize: 11.5, background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6,
-                color: dateValue ? "#fff" : "rgba(255,255,255,0.25)", padding: "3px 8px",
-                colorScheme: "dark",
+                width: 44, textAlign: "center", fontSize: 18,
+                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 8, padding: "6px 4px", color: "#fff",
               }}
             />
-            <ActionButton onClick={handleSetDaily} color="#818CF8">Set Daily</ActionButton>
-            {cat.featuredDate && (
-              <ActionButton onClick={handleClearDaily}>Clear</ActionButton>
-            )}
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              aria-label="Category name"
+              style={{
+                flex: 1, fontSize: 14, fontWeight: 600,
+                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 8, padding: "6px 10px", color: "#fff",
+              }}
+            />
           </div>
-        </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 18 }}>{cat.emoji}</span>
+            <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.02em" }}>{cat.name}</span>
+            <StatusBadge status={cat.status} />
+          </div>
+        )}
 
-        {/* Actions */}
-        <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {editing ? (
-            <>
-              <ActionButton onClick={handleSave} color="var(--green)">Save</ActionButton>
-              <ActionButton onClick={() => { setEditing(false); setName(cat.name); setEmoji(cat.emoji ?? ""); }}>Cancel</ActionButton>
-            </>
-          ) : (
-            <>
-              <ActionButton onClick={() => setEditing(true)}>Edit</ActionButton>
-              <ActionButton onClick={handleToggleImages} color={cat.showImages ? "#818CF8" : "rgba(255,255,255,0.3)"}>{cat.showImages ? "📷 Images" : "🚫 Images"}</ActionButton>
-              {cat.status !== "ACTIVE"  && <ActionButton onClick={() => handleStatus("ACTIVE")}  color="var(--green)">Active</ActionButton>}
-              {cat.status !== "HIDDEN"  && <ActionButton onClick={() => handleStatus("HIDDEN")}  color="#FBBF24">Hide</ActionButton>}
-              {cat.status !== "DELETED" && <ActionButton onClick={() => handleStatus("DELETED")} color="var(--red)">Delete</ActionButton>}
-              {confirmDestroy ? (
-                <>
-                  <ActionButton color="var(--red)" onClick={() => startTransition(() => destroyCategory(cat.id))}>Confirm</ActionButton>
-                  <ActionButton onClick={() => setConfirmDestroy(false)}>Cancel</ActionButton>
-                </>
-              ) : (
-                <ActionButton color="var(--red)" onClick={() => setConfirmDestroy(true)}>🗑 Destroy</ActionButton>
-              )}
-            </>
+        <div style={{ display: "flex", gap: 16, fontSize: 11.5, color: "rgba(255,255,255,0.3)" }}>
+          <span>{cat._count.votes} votes</span>
+          <span>{cat._count.items} items</span>
+          {cat.author && <span>by {cat.author.email}</span>}
+          <span>{new Date(cat.createdAt).toLocaleDateString()}</span>
+        </div>
+        {/* Daily date picker */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap", opacity: isPendingDate ? 0.6 : 1 }}>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Daily:</span>
+          <input
+            type="date"
+            value={dateValue}
+            onChange={e => setDateValue(e.target.value)}
+            aria-label="Set as daily category date"
+            style={{
+              fontSize: 11.5, background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6,
+              color: dateValue ? "#fff" : "rgba(255,255,255,0.25)", padding: "3px 8px",
+              colorScheme: "dark",
+            }}
+          />
+          <ActionButton onClick={handleSetDaily} color="#818CF8">Set Daily</ActionButton>
+          {cat.featuredDate && (
+            <ActionButton onClick={handleClearDaily}>Clear</ActionButton>
           )}
         </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+        {editing ? (
+          <>
+            <ActionButton onClick={handleSave} color="var(--green)">Save</ActionButton>
+            <ActionButton onClick={() => { setEditing(false); setName(cat.name); setEmoji(cat.emoji ?? ""); }}>Cancel</ActionButton>
+          </>
+        ) : (
+          <>
+            <ActionButton onClick={() => setEditing(true)}>Edit</ActionButton>
+            <ActionButton onClick={handleToggleImages} color={cat.showImages ? "#818CF8" : "rgba(255,255,255,0.3)"}>{cat.showImages ? "📷 Images" : "🚫 Images"}</ActionButton>
+            {cat.status !== "ACTIVE"  && <ActionButton onClick={() => handleStatus("ACTIVE")}  color="var(--green)">Active</ActionButton>}
+            {cat.status !== "HIDDEN"  && <ActionButton onClick={() => handleStatus("HIDDEN")}  color="#FBBF24">Hide</ActionButton>}
+            {cat.status !== "DELETED" && <ActionButton onClick={() => handleStatus("DELETED")} color="var(--red)">Delete</ActionButton>}
+            {confirmDestroy ? (
+              <>
+                <ActionButton color="var(--red)" onClick={() => startTransition(() => destroyCategory(cat.id))}>Confirm</ActionButton>
+                <ActionButton onClick={() => setConfirmDestroy(false)}>Cancel</ActionButton>
+              </>
+            ) : (
+              <ActionButton color="var(--red)" onClick={() => setConfirmDestroy(true)}>🗑 Destroy</ActionButton>
+            )}
+          </>
+        )}
       </div>
       <ItemsPanel categoryId={cat.id} categoryName={cat.name} />
     </div>
