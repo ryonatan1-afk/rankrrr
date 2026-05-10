@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import Anthropic from "@anthropic-ai/sdk";
 import { generateImageSearchQuery } from "@/lib/ai/image-search-query";
 import { fetchWikipediaThumbnail } from "@/lib/wikipedia";
 
@@ -63,6 +64,48 @@ export async function destroyCategory(id: string) {
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/categories");
+}
+
+export async function replaceItem(itemId: string): Promise<{ name: string; emoji: string }> {
+  await requireAdmin();
+  const item = await db.item.findUnique({
+    where: { id: itemId },
+    select: {
+      name: true,
+      category: {
+        select: {
+          name: true,
+          items: { select: { name: true }, orderBy: { createdAt: "asc" } },
+        },
+      },
+    },
+  });
+  if (!item) throw new Error("Item not found");
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("No API key configured");
+
+  const existingNames = item.category.items.map((i) => i.name);
+  const client = new Anthropic({ apiKey });
+  const msg = await client.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: 80,
+    messages: [{
+      role: "user",
+      content: `Category: "${item.category.name}"\nReplace this item: "${item.name}"\nDo NOT use any of these (already in the list): ${existingNames.join(", ")}\n\nReply with ONLY valid JSON, no other text: {"name": "Replacement Name", "emoji": "🎵"}`,
+    }],
+  });
+
+  const raw = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
+  const match = raw.match(/\{[^}]+\}/);
+  if (!match) throw new Error("Invalid AI response");
+  const parsed = JSON.parse(match[0]) as { name?: string; emoji?: string };
+  if (!parsed.name) throw new Error("AI did not return a name");
+
+  await db.item.update({
+    where: { id: itemId },
+    data: { name: parsed.name, emoji: parsed.emoji ?? null, imageUrl: null },
+  });
+  return { name: parsed.name, emoji: parsed.emoji ?? "" };
 }
 
 export async function updateFeaturedDate(id: string, featuredDate: string | null) {

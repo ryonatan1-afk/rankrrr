@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { updateCategoryStatus, updateCategoryMeta, updateFeaturedDate, destroyCategory, getCategoryItems, refreshItemImage, setItemImageUrl } from "./actions";
+import { updateCategoryStatus, updateCategoryMeta, updateFeaturedDate, destroyCategory, getCategoryItems, refreshItemImage, setItemImageUrl, replaceItem } from "./actions";
 
 type Status = "ACTIVE" | "HIDDEN" | "DELETED";
 
@@ -167,14 +167,16 @@ function CategoryRow({ cat }: { cat: Category }) {
   );
 }
 
-function ActionButton({ onClick, color, children }: {
+function ActionButton({ onClick, color, children, disabled }: {
   onClick: () => void;
   color?: string;
   children: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       style={{
         fontSize: 11.5, fontWeight: 600, padding: "5px 12px", borderRadius: 8, cursor: "pointer",
         background: color ? `${color}18` : "rgba(255,255,255,0.05)",
@@ -192,7 +194,10 @@ type AdminItem = { id: string; name: string; emoji: string | null; imageUrl: str
 
 function ItemRow({ item, categoryName }: { item: AdminItem; categoryName: string }) {
   const [imageUrl, setImageUrl] = useState(item.imageUrl ?? "");
+  const [itemName, setItemName] = useState(item.name);
+  const [itemEmoji, setItemEmoji] = useState(item.emoji ?? "");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isReplacing, setIsReplacing] = useState(false);
   const [isSaving, startSaveTransition] = useTransition();
 
   async function handleRefresh() {
@@ -205,11 +210,23 @@ function ItemRow({ item, categoryName }: { item: AdminItem; categoryName: string
     }
   }
 
+  async function handleReplace() {
+    setIsReplacing(true);
+    try {
+      const result = await replaceItem(item.id);
+      setItemName(result.name);
+      setItemEmoji(result.emoji);
+      setImageUrl("");
+    } finally {
+      setIsReplacing(false);
+    }
+  }
+
   function handleSaveUrl() {
     startSaveTransition(() => setItemImageUrl(item.id, imageUrl));
   }
 
-  const busy = isRefreshing || isSaving;
+  const busy = isRefreshing || isSaving || isReplacing;
   const displayUrl = imageUrl || null;
 
   return (
@@ -225,14 +242,14 @@ function ItemRow({ item, categoryName }: { item: AdminItem; categoryName: string
         position: "relative",
       }}>
         {displayUrl && (
-          <Image src={displayUrl} alt={item.name} fill sizes="52px" style={{ objectFit: "cover" }} unoptimized />
+          <Image src={displayUrl} alt={itemName} fill sizes="52px" style={{ objectFit: "cover" }} unoptimized />
         )}
       </div>
 
       {/* Name + controls */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-          {item.emoji} {item.name}
+          {itemEmoji} {itemName}
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
           <input
@@ -245,8 +262,9 @@ function ItemRow({ item, categoryName }: { item: AdminItem; categoryName: string
               color: "#fff",
             }}
           />
-          <ActionButton onClick={handleSaveUrl} color="var(--green)">{isSaving ? "Saving…" : "Save"}</ActionButton>
-          <ActionButton onClick={handleRefresh} color="#818CF8">{isRefreshing ? "…" : "🔄 AI Fix"}</ActionButton>
+          <ActionButton onClick={handleSaveUrl} color="var(--green)" disabled={busy}>{isSaving ? "Saving…" : "Save"}</ActionButton>
+          <ActionButton onClick={handleRefresh} color="#818CF8" disabled={busy}>{isRefreshing ? "…" : "🔄 Fix Image"}</ActionButton>
+          <ActionButton onClick={handleReplace} color="#A855F7" disabled={busy}>{isReplacing ? "…" : "✨ Replace"}</ActionButton>
         </div>
       </div>
     </div>
