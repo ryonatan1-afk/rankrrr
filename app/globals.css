@@ -23,6 +23,7 @@
 
 html, body { height: 100%; }
 html, body { overflow-x: clip; }
+html { background: #000; }
 main { overflow-x: clip; }
 
 body {
