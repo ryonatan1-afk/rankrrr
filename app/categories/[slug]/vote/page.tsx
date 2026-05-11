@@ -52,7 +52,7 @@ export default async function VotePage({ params }: Props) {
     .sort((a, b) => b.winRate - a.winRate);
 
   return (
-    <main className="flex-1 px-4 py-8">
+    <main className="flex-1 px-5 py-8">
       <div className="min-w-0 flex flex-col gap-6" style={{ maxWidth: 672, margin: "0 auto" }}>
         {/* Header */}
         <div className="flex items-center gap-3">

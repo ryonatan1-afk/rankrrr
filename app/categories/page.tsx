@@ -32,7 +32,7 @@ export default async function CategoriesPage() {
   const sessionMap = new Map(sessions.map((s) => [s.categoryId, s]));
 
   return (
-    <main className="flex-1 px-4 py-10">
+    <main className="flex-1 px-5 py-10">
       <div className="min-w-0 flex flex-col gap-8" style={{ maxWidth: 672, margin: "0 auto" }}>
         <div className="flex items-center justify-between">
           <div>

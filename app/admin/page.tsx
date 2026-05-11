@@ -31,7 +31,7 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <main className="flex-1 px-4 py-8">
+    <main className="flex-1 px-5 py-8">
       <div className="min-w-0 flex flex-col gap-6" style={{ maxWidth: 896, margin: "0 auto" }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 4 }}>
