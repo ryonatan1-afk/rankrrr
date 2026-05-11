@@ -55,21 +55,7 @@ export default function NewCategoryPage() {
       <div className="min-w-0 flex flex-col gap-8" style={{ maxWidth: 576, margin: "0 auto" }}>
         {/* Header */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "var(--muted)",
-              cursor: "pointer",
-            }}
-          >
-            ← Back
-          </button>
-          <div>
-            <span className="font-semibold tracking-tight">New Category</span>
-          </div>
+          <span className="font-semibold tracking-tight">New Category</span>
         </div>
 
         {/* Input phase */}

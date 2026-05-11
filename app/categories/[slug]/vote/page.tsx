@@ -56,17 +56,6 @@ export default async function VotePage({ params }: Props) {
       <div className="min-w-0 flex flex-col gap-6" style={{ maxWidth: 672, margin: "0 auto" }}>
         {/* Header */}
         <div className="flex items-center gap-3">
-          <a
-            href="/categories"
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "var(--muted)",
-            }}
-          >
-            ← Back
-          </a>
           <span className="font-semibold tracking-tight">{category.name}</span>
         </div>
 

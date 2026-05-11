@@ -73,17 +73,6 @@ export default async function LeaderboardPage({ params }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link
-              href="/categories"
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "var(--muted)",
-              }}
-            >
-              ← Back
-            </Link>
             <span className="font-semibold">{category.name}</span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
