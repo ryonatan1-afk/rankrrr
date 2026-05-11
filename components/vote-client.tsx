@@ -212,12 +212,8 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confetti, setConfetti] = useState<Array<{ id: number; x: number; y: number; color: string; angle: number; dist: number }>>([]);
   const [visible, setVisible] = useState(true);
-  const swipeStartX = useRef<number | null>(null);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
   const hasVoted = useRef(false);
-  const [swipeDx, setSwipeDx] = useState(0);
-  const [swipeDir, setSwipeDir] = useState<"none" | "right" | "left">("none");
-  const [swipeCaptureDx, setSwipeCaptureDx] = useState(0);
 
   const currentMatchup = getCurrentMatchup(state);
   const { done, total } = getRoundProgress(state);
@@ -274,26 +270,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     first?.focus({ preventScroll: true });
   }, [visible, animPhase]);
 
-  const handleTouchStart = (e: React.TouchEvent) => { swipeStartX.current = e.touches[0].clientX; };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (swipeStartX.current === null) return;
-    setSwipeDx(e.touches[0].clientX - swipeStartX.current);
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (swipeStartX.current === null || !currentMatchup || animPhase !== "idle" || swipeDir !== "none") return;
-    const dx = e.changedTouches[0].clientX - swipeStartX.current;
-    swipeStartX.current = null;
-    setSwipeDx(0);
-    if (Math.abs(dx) < 50) return;
-    const dir = (dx > 0 ? "right" : "left") as "right" | "left";
-    setSwipeCaptureDx(dx);
-    setSwipeDir(dir);
-    setTimeout(() => {
-      setSwipeDir("none");
-      if (dir === "right") doVote(currentMatchup.itemAId, currentMatchup.itemBId);
-      else doVote(currentMatchup.itemBId, currentMatchup.itemAId);
-    }, 280);
-  };
+
 
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const roundLabels = ["Round of 16", "Quarter-finals", "Semi-finals", "Final"];
@@ -515,11 +492,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     <>
       <HowToModal />
       <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         className="flex flex-col gap-6"
-        style={{ touchAction: "pan-y" }}
       >
       <div aria-live="polite" aria-atomic="true" style={{ position:"absolute", width:1, height:1, padding:0, margin:-1, overflow:"hidden", clip:"rect(0,0,0,0)", whiteSpace:"nowrap", borderWidth:0 }}>
         {`${roundLabels[state.currentRound - 1]}, match ${matchInRound} of ${totalInRound}. ${itemA.name} vs ${itemB.name}.`}
@@ -562,26 +535,15 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           .cards-vs { flex-direction: row; gap: 12px; }
           .cards-vs::before, .cards-vs::after { content: ""; flex: 1; height: 1px; background: var(--border); }
         }
-        @keyframes swipe-right {
-          from { transform: translateX(var(--swipe-from-x, 50px)) rotate(var(--swipe-from-rot, 5deg)); opacity: 1; }
-          to   { transform: translateX(120vw) rotate(25deg); opacity: 0; }
-        }
-        @keyframes swipe-left {
-          from { transform: translateX(var(--swipe-from-x, -50px)) rotate(var(--swipe-from-rot, -5deg)); opacity: 1; }
-          to   { transform: translateX(-120vw) rotate(-25deg); opacity: 0; }
-        }
       `}</style>
       <div
         ref={cardsContainerRef}
         className="cards-row"
         style={{
           opacity: visible ? 1 : 0,
-          transform: swipeDir !== "none" ? undefined : `translateX(${swipeDx}px) rotate(${(swipeDx * 0.05).toFixed(1)}deg) translateY(${visible ? 0 : 10}px)`,
-          transition: swipeDx !== 0 ? "none" : "opacity 0.22s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1)",
-          animation: swipeDir === "right" ? "swipe-right 0.28s ease-in forwards" : swipeDir === "left" ? "swipe-left 0.28s ease-in forwards" : "none",
-          "--swipe-from-x": `${swipeCaptureDx}px`,
-          "--swipe-from-rot": `${(swipeCaptureDx * 0.05).toFixed(1)}deg`,
-        } as React.CSSProperties}
+          transform: `translateY(${visible ? 0 : 10}px)`,
+          transition: "opacity 0.22s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1)",
+        }}
       >
         <MatchupCard
           key={itemA.id}
@@ -614,7 +576,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
       </div>
 
       <div style={{ textAlign: "center", fontSize: 11.5, color: "rgba(255,255,255,0.15)" }}>
-        Click, use arrow keys, or swipe to vote
+        Click or use arrow keys to vote
       </div>
 
       {/* Confetti */}
