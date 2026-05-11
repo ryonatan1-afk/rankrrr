@@ -74,7 +74,7 @@ export default function RootLayout({
           <div aria-hidden="true" style={{
             position: "fixed", inset: 0,
             boxShadow: "inset 0 0 0 8px #000",
-            borderRadius: 24, pointerEvents: "none", zIndex: 50,
+            pointerEvents: "none", zIndex: 50,
           }} />
         </ClerkProvider>
       </body>
