@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import Anthropic from "@anthropic-ai/sdk";
 import { generateImageSearchQuery } from "@/lib/ai/image-search-query";
-import { fetchGoogleImage } from "@/lib/google-images";
+import { fetchBraveImage } from "@/lib/brave-images";
 
 async function requireAdmin() {
   const { userId } = await auth();
@@ -48,7 +48,7 @@ export async function refreshItemImage(itemId: string) {
   });
   if (!item) throw new Error("Item not found");
   const query = await generateImageSearchQuery(item.name, item.category.name);
-  const imageUrl = await fetchGoogleImage(query);
+  const imageUrl = await fetchBraveImage(query);
   if (!imageUrl) throw new Error(`No image found for "${query}"`);
   await db.item.update({ where: { id: itemId }, data: { imageUrl } });
   return { imageUrl };
@@ -123,6 +123,7 @@ export async function updateFeaturedDate(id: string, featuredDate: string | null
   revalidatePath("/admin");
   revalidatePath("/");
 }
+
 
 
 
