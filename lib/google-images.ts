@@ -13,10 +13,20 @@
     url.searchParams.set("safe", "active");
 
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6000) });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("[google-images] HTTP", res.status, body);
+      return null;
+    }
     const data = await res.json() as { items?: { image?: { thumbnailLink?: string } }[] };
-    return data.items?.[0]?.image?.thumbnailLink ?? null;
-  } catch {
+    if (!data.items?.length) {
+      console.error("[google-images] No results for query:", url.searchParams.get("q"));
+      return null;
+    }
+    return data.items[0].image?.thumbnailLink ?? null;
+  } catch (err) {
+    console.error("[google-images] fetch error:", err);
     return null;
   }
 }
+
