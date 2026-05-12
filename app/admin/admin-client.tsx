@@ -200,14 +200,18 @@ function ItemRow({ item, categoryName }: { item: AdminItem; categoryName: string
   const [itemName, setItemName] = useState(item.name);
   const [itemEmoji, setItemEmoji] = useState(item.emoji ?? "");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [isReplacing, setIsReplacing] = useState(false);
   const [isSaving, startSaveTransition] = useTransition();
 
   async function handleRefresh() {
     setIsRefreshing(true);
+    setRefreshError(null);
     try {
       const result = await refreshItemImage(item.id);
-      setImageUrl(result.imageUrl ?? "");
+      setImageUrl(result.imageUrl);
+    } catch (err) {
+      setRefreshError(err instanceof Error ? err.message : "Failed");
     } finally {
       setIsRefreshing(false);
     }
