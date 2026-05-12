@@ -158,7 +158,7 @@ function MatchupCard({
           fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
           padding: "3px 9px", borderRadius: 99,
         }}>
-          âœ“ Winner
+          ✓ Winner
         </div>
       )}
 
@@ -362,7 +362,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                 color: crowdAgreed ? "var(--green)" : "var(--muted)",
                 flexShrink: 0,
               }}>
-                {crowdAgreed ? "âœ“ Crowd agrees" : "â†• You diverge from crowd"}
+                {crowdAgreed ? "✓ Crowd agrees" : "↕ You diverge from crowd"}
               </div>
             </div>
             {!crowdAgreed && crowdTop && (
@@ -414,7 +414,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           <div style={{ display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap" }}>
             {streak >= 2 && (
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 24 }}>ðŸ”¥</div>
+                <div style={{ fontSize: 24 }}>🔥</div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{streak}</div>
                 <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>Day Streak</div>
               </div>
@@ -443,7 +443,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                 display: "flex", alignItems: "center", gap: 8,
               }}
             >
-              ðŸ’¬ Share on WhatsApp
+              💬 Share on WhatsApp
             </a>
           </div>
         )}
@@ -459,7 +459,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                 textDecoration: "none", boxShadow: "0 4px 20px var(--accent-glow)",
               }}
             >
-              View Rankings â†’
+              View Rankings →
             </a>
             <button
               onClick={() => router.push("/categories")}
@@ -469,7 +469,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                 padding: "12px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer",
               }}
             >
-              â† Categories
+              ← Categories
             </button>
           </div>
         )}
@@ -561,7 +561,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <span style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 500 }}>
-            {roundLabels[state.currentRound - 1]} â€” Match {matchInRound} of {totalInRound}
+            {roundLabels[state.currentRound - 1]} — Match {matchInRound} of {totalInRound}
           </span>
           <span style={{ fontSize: 11.5, color: "var(--accent)", fontWeight: 600 }}>{pct}% done</span>
         </div>
