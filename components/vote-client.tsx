@@ -309,7 +309,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     return (
       <>
         <HowToModal />
-        <div className="flex flex-col gap-8" style={{ animation: "fadeup 0.45s ease forwards" }}>
+        <div className="flex flex-col gap-8" style={{ animation: "fadein 0.45s ease forwards" }}>
         {/* Completion header */}
         <div className="flex flex-col items-center gap-4 text-center">
           <div style={{
