@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { submitVote } from "@/app/actions";
@@ -484,7 +485,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           <BracketTree state={state} itemMap={itemMap} />
         </div>
       </div>
-      {showSharePopup && (
+      {showSharePopup && createPortal(
         <>
           {/* Backdrop */}
           <div
@@ -541,7 +542,8 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
               Maybe later
             </button>
           </div>
-        </>
+        </>,
+        document.body
       )}
       </>
     );
