@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+﻿import Anthropic from "@anthropic-ai/sdk";
 
 export async function generateImageSearchQuery(
   itemName: string,
@@ -15,7 +15,7 @@ export async function generateImageSearchQuery(
       max_tokens: 64,
       messages: [{
         role: "user",
-        content: `Return only a precise Wikipedia search query (5-8 words max) to find a thumbnail image for "${itemName}" in the context of "${categoryName}". Output only the search query, nothing else.`,
+        content: `Return only a short image search query (4-6 words max) to find a clear, recognizable photo or image of "${itemName}" in the context of "${categoryName}". Prefer the most iconic/well-known representation. Output only the search query, nothing else.`,
       }],
     });
 
@@ -25,3 +25,4 @@ export async function generateImageSearchQuery(
     return fallback;
   }
 }
+

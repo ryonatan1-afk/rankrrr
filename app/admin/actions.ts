@@ -1,11 +1,11 @@
-"use server";
+﻿"use server";
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import Anthropic from "@anthropic-ai/sdk";
 import { generateImageSearchQuery } from "@/lib/ai/image-search-query";
-import { fetchWikipediaThumbnail } from "@/lib/wikipedia";
+import { fetchGoogleImage } from "@/lib/google-images";
 
 async function requireAdmin() {
   const { userId } = await auth();
@@ -48,7 +48,7 @@ export async function refreshItemImage(itemId: string) {
   });
   if (!item) throw new Error("Item not found");
   const query = await generateImageSearchQuery(item.name, item.category.name);
-  const imageUrl = await fetchWikipediaThumbnail(query);
+  const imageUrl = await fetchGoogleImage(query);
   await db.item.update({ where: { id: itemId }, data: { imageUrl: imageUrl ?? null } });
   return { imageUrl: imageUrl ?? null };
 }
@@ -97,7 +97,7 @@ export async function replaceItem(itemId: string): Promise<{ name: string; emoji
     max_tokens: 80,
     messages: [{
       role: "user",
-      content: `Category: "${item.category.name}"\nReplace this item: "${item.name}"\nDo NOT use any of these (already in the list): ${existingNames.join(", ")}\n\nReply with ONLY valid JSON, no other text: {"name": "Replacement Name", "emoji": "🎵"}`,
+      content: `Category: "${item.category.name}"\nReplace this item: "${item.name}"\nDo NOT use any of these (already in the list): ${existingNames.join(", ")}\n\nReply with ONLY valid JSON, no other text: {"name": "Replacement Name", "emoji": "ðŸŽµ"}`,
     }],
   });
 
@@ -122,3 +122,5 @@ export async function updateFeaturedDate(id: string, featuredDate: string | null
   revalidatePath("/admin");
   revalidatePath("/");
 }
+
+
