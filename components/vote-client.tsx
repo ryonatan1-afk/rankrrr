@@ -486,26 +486,19 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
         </div>
       </div>
       {showSharePopup && createPortal(
-        <>
-          {/* Backdrop */}
-          <div
-            onClick={() => setShowSharePopup(false)}
-            style={{
-              position: "fixed", inset: 0, zIndex: 1000,
-              background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
-            }}
-          />
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
+        }} onClick={() => setShowSharePopup(false)}>
           {/* Popup */}
-          <div style={{
-            position: "fixed", left: "50%", top: "50%", zIndex: 1001,
-            transform: "translate(-50%,-50%)",
+          <div onClick={e => e.stopPropagation()} style={{
             background: "var(--surface)",
             border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 20, padding: "32px 28px",
             width: "min(90vw, 340px)",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
             boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
-            opacity: 1,
           }}>
             <div style={{ fontSize: 32 }}>💬</div>
             <div style={{ textAlign: "center" }}>
@@ -542,7 +535,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
               Maybe later
             </button>
           </div>
-        </>,
+        </div>,
         document.body
       )}
       </>
