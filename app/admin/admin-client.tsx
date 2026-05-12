@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
@@ -150,7 +150,7 @@ function CategoryRow({ cat }: { cat: Category }) {
         ) : (
           <>
             <ActionButton onClick={() => setEditing(true)}>Edit</ActionButton>
-            <ActionButton onClick={handleToggleImages} color={cat.showImages ? "#818CF8" : "rgba(255,255,255,0.3)"}>{cat.showImages ? "📷 Images" : "🚫 Images"}</ActionButton>
+            <ActionButton onClick={handleToggleImages} color={cat.showImages ? "#818CF8" : "rgba(255,255,255,0.3)"}>{cat.showImages ? "ðŸ“· Images" : "ðŸš« Images"}</ActionButton>
             {cat.status !== "ACTIVE"  && <ActionButton onClick={() => handleStatus("ACTIVE")}  color="var(--green)">Active</ActionButton>}
             {cat.status !== "HIDDEN"  && <ActionButton onClick={() => handleStatus("HIDDEN")}  color="#FBBF24">Hide</ActionButton>}
             {cat.status !== "DELETED" && <ActionButton onClick={() => handleStatus("DELETED")} color="var(--red)">Delete</ActionButton>}
@@ -160,7 +160,7 @@ function CategoryRow({ cat }: { cat: Category }) {
                 <ActionButton onClick={() => setConfirmDestroy(false)}>Cancel</ActionButton>
               </>
             ) : (
-              <ActionButton color="var(--red)" onClick={() => setConfirmDestroy(true)}>🗑 Destroy</ActionButton>
+              <ActionButton color="var(--red)" onClick={() => setConfirmDestroy(true)}>ðŸ—‘ Destroy</ActionButton>
             )}
           </>
         )}
@@ -200,14 +200,18 @@ function ItemRow({ item, categoryName }: { item: AdminItem; categoryName: string
   const [itemName, setItemName] = useState(item.name);
   const [itemEmoji, setItemEmoji] = useState(item.emoji ?? "");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [isReplacing, setIsReplacing] = useState(false);
   const [isSaving, startSaveTransition] = useTransition();
 
   async function handleRefresh() {
     setIsRefreshing(true);
+    setRefreshError(null);
     try {
       const result = await refreshItemImage(item.id);
-      setImageUrl(result.imageUrl ?? "");
+      setImageUrl(result.imageUrl);
+    } catch (err) {
+      setRefreshError(err instanceof Error ? err.message : "Failed");
     } finally {
       setIsRefreshing(false);
     }
@@ -258,16 +262,16 @@ function ItemRow({ item, categoryName }: { item: AdminItem; categoryName: string
           <input
             value={imageUrl}
             onChange={e => setImageUrl(e.target.value)}
-            placeholder="Paste image URL…"
+            placeholder="Paste image URLâ€¦"
             style={{
               flex: 1, minWidth: 140, fontSize: 11, padding: "4px 8px", borderRadius: 6,
               background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
               color: "#fff",
             }}
           />
-          <ActionButton onClick={handleSaveUrl} color="var(--green)" disabled={busy}>{isSaving ? "Saving…" : "Save"}</ActionButton>
-          <ActionButton onClick={handleRefresh} color="#818CF8" disabled={busy}>{isRefreshing ? "…" : "🔄 Fix Image"}</ActionButton>
-          <ActionButton onClick={handleReplace} color="#A855F7" disabled={busy}>{isReplacing ? "…" : "✨ Replace"}</ActionButton>
+          <ActionButton onClick={handleSaveUrl} color="var(--green)" disabled={busy}>{isSaving ? "Savingâ€¦" : "Save"}</ActionButton>
+          <ActionButton onClick={handleRefresh} color="#818CF8" disabled={busy}>{isRefreshing ? "â€¦" : "ðŸ”„ Fix Image"}</ActionButton>
+          <ActionButton onClick={handleReplace} color="#A855F7" disabled={busy}>{isReplacing ? "â€¦" : "âœ¨ Replace"}</ActionButton>
         </div>
       </div>
     </div>
@@ -300,7 +304,7 @@ function ItemsPanel({ categoryId, categoryName }: { categoryId: string; category
           color: "rgba(255,255,255,0.4)", transition: "all 0.15s",
         }}
       >
-        {loading ? "Loading…" : "▸ View Items"}
+        {loading ? "Loadingâ€¦" : "â–¸ View Items"}
       </button>
     );
   }
@@ -315,7 +319,7 @@ function ItemsPanel({ categoryId, categoryName }: { categoryId: string; category
           onClick={() => setItems(null)}
           style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", background: "none", border: "none", cursor: "pointer" }}
         >
-          ▴ Hide
+          â–´ Hide
         </button>
       </div>
       {items.map(item => (
@@ -377,3 +381,5 @@ export default function AdminClient({ categories }: { categories: Category[] }) 
     </div>
   );
 }
+
+

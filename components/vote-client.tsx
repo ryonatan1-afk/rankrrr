@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -157,7 +157,7 @@ function MatchupCard({
           fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
           padding: "3px 9px", borderRadius: 99,
         }}>
-          ✓ Winner
+          âœ“ Winner
         </div>
       )}
 
@@ -213,6 +213,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
   const [confetti, setConfetti] = useState<Array<{ id: number; x: number; y: number; color: string; angle: number; dist: number }>>([]);
   const [visible, setVisible] = useState(true);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
+  const [showSharePopup, setShowSharePopup] = useState(false);
   const hasVoted = useRef(false);
 
   const currentMatchup = getCurrentMatchup(state);
@@ -270,6 +271,11 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     first?.focus({ preventScroll: true });
   }, [visible, animPhase]);
 
+  useEffect(() => {
+    if (!isBracketComplete(state)) return;
+    const t = setTimeout(() => setShowSharePopup(true), 600);
+    return () => clearTimeout(t);
+  }, [state]);
 
 
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -355,7 +361,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                 color: crowdAgreed ? "var(--green)" : "var(--muted)",
                 flexShrink: 0,
               }}>
-                {crowdAgreed ? "✓ Crowd agrees" : "↕ You diverge from crowd"}
+                {crowdAgreed ? "âœ“ Crowd agrees" : "â†• You diverge from crowd"}
               </div>
             </div>
             {!crowdAgreed && crowdTop && (
@@ -363,7 +369,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                 Crowd&apos;s current #1:{" "}
                 <strong style={{ color: "rgba(255,255,255,0.65)" }}>{crowdTop.name}</strong>
                 {crowdData[0].totalVotes > 0 && (
-                  <span style={{ color: "rgba(255,255,255,0.25)" }}> · {Math.round(crowdData[0].winRate)}% win rate</span>
+                  <span style={{ color: "rgba(255,255,255,0.25)" }}> Â· {Math.round(crowdData[0].winRate)}% win rate</span>
                 )}
               </div>
             )}
@@ -407,7 +413,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           <div style={{ display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap" }}>
             {streak >= 2 && (
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 24 }}>🔥</div>
+                <div style={{ fontSize: 24 }}>ðŸ”¥</div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{streak}</div>
                 <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>Day Streak</div>
               </div>
@@ -436,7 +442,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                 display: "flex", alignItems: "center", gap: 8,
               }}
             >
-              💬 Share on WhatsApp
+              ðŸ’¬ Share on WhatsApp
             </a>
           </div>
         )}
@@ -452,7 +458,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                 textDecoration: "none", boxShadow: "0 4px 20px var(--accent-glow)",
               }}
             >
-              View Rankings →
+              View Rankings â†’
             </a>
             <button
               onClick={() => router.push("/categories")}
@@ -462,7 +468,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                 padding: "12px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer",
               }}
             >
-              ← Categories
+              â† Categories
             </button>
           </div>
         )}
@@ -478,6 +484,65 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
           <BracketTree state={state} itemMap={itemMap} />
         </div>
       </div>
+      {showSharePopup && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowSharePopup(false)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 1000,
+              background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
+            }}
+          />
+          {/* Popup */}
+          <div style={{
+            position: "fixed", left: "50%", top: "50%", zIndex: 1001,
+            transform: "translate(-50%,-50%)",
+            background: "var(--surface)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 20, padding: "32px 28px",
+            width: "min(90vw, 340px)",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
+            boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+            animation: "fadeup 0.3s ease forwards",
+          }}>
+            <div style={{ fontSize: 32 }}>💬</div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 8 }}>
+                Invite friends to vote
+              </div>
+              <div style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6 }}>
+                See how their picks compare to yours.
+              </div>
+            </div>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
+              target="_blank" rel="noopener noreferrer"
+              onClick={() => setShowSharePopup(false)}
+              style={{
+                width: "100%", textAlign: "center",
+                fontSize: 15, fontWeight: 700, padding: "13px 0", borderRadius: 12,
+                background: "#25D366",
+                color: "#fff",
+                textDecoration: "none",
+                display: "block",
+                boxShadow: "0 4px 24px rgba(37,211,102,0.35)",
+              }}
+            >
+              Share on WhatsApp
+            </a>
+            <button
+              onClick={() => setShowSharePopup(false)}
+              style={{
+                background: "none", border: "none", color: "var(--muted)",
+                fontSize: 13, cursor: "pointer", padding: "4px 0",
+              }}
+            >
+              Maybe later
+            </button>
+          </div>
+        </>
+      )}
       </>
     );
   }
@@ -501,7 +566,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <span style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 500 }}>
-            {roundLabels[state.currentRound - 1]} — Match {matchInRound} of {totalInRound}
+            {roundLabels[state.currentRound - 1]} â€” Match {matchInRound} of {totalInRound}
           </span>
           <span style={{ fontSize: 11.5, color: "var(--accent)", fontWeight: 600 }}>{pct}% done</span>
         </div>
@@ -587,3 +652,6 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     </>
   );
 }
+
+
+

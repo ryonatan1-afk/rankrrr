@@ -49,8 +49,9 @@ export async function refreshItemImage(itemId: string) {
   if (!item) throw new Error("Item not found");
   const query = await generateImageSearchQuery(item.name, item.category.name);
   const imageUrl = await fetchGoogleImage(query);
-  await db.item.update({ where: { id: itemId }, data: { imageUrl: imageUrl ?? null } });
-  return { imageUrl: imageUrl ?? null };
+  if (!imageUrl) throw new Error(`No image found for "${query}"`);
+  await db.item.update({ where: { id: itemId }, data: { imageUrl } });
+  return { imageUrl };
 }
 
 export async function setItemImageUrl(itemId: string, imageUrl: string) {
@@ -122,5 +123,6 @@ export async function updateFeaturedDate(id: string, featuredDate: string | null
   revalidatePath("/admin");
   revalidatePath("/");
 }
+
 
 
