@@ -288,6 +288,11 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
   const totalInRound = currentRoundMatchups.length;
 
   if (isComplete && winner) {
+    const crowdTop = crowdData && crowdData.length > 0 ? itemMap[crowdData[0].itemId] : null;
+    const crowdAgreed = crowdData && crowdData.length > 0 && crowdData[0].itemId === winner.id;
+    const shareText = `I picked ${winner.name} as the best in ${categoryName}. Come vote!`;
+    const shareUrl = `https://rankrrr.vercel.app/categories/${categorySlug}/vote`;
+    const medals = ["🥇", "🥈", "🥉"];
     const crowdWisdomScore = (() => {
       if (!crowdData || crowdData.length === 0) return null;
       const crowdMap = new Map(crowdData.map(cd => [cd.itemId, cd.winRate]));
@@ -301,247 +306,182 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
       return Math.round((matching / matchups.length) * 100);
     })();
 
-    const winnerCrowdRank = crowdData ? crowdData.findIndex((cd) => cd.itemId === winner.id) + 1 : 0;
-    const crowdTop = crowdData && crowdData.length > 0 ? itemMap[crowdData[0].itemId] : null;
-    const crowdAgreed = crowdData && crowdData.length > 0 && crowdData[0].itemId === winner.id;
-    const shareText = `I picked ${winner.name} as the best in ${categoryName}. What's yours?`;
-    const shareUrl = `https://rankrrr.vercel.app/categories/${categorySlug}/vote`;
-
     return (
       <>
         <HowToModal />
-        <div className="flex flex-col gap-8" style={{ animation: "fadein 0.45s ease forwards" }}>
-        {/* Completion header */}
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div style={{
-            width: 72, height: 72, borderRadius: 20,
-            background: "rgba(52,211,153,0.1)",
-            border: "1px solid rgba(52,211,153,0.3)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, fontWeight: 800,
-            color: "var(--green)",
-            boxShadow: "0 8px 40px rgba(52,211,153,0.2)",
-          }}>
-            {getInitials(winner.name)}
-          </div>
-          <div>
-            <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 6 }}>
-              All done!
-            </div>
-            <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>
-              <strong style={{ color: "#fff" }}>{winner.name}</strong> topped your bracket.
-            </div>
-          </div>
-        </div>
+        <div className="flex flex-col gap-6" style={{ animation: "fadein 0.45s ease forwards" }}>
 
-        {/* You vs. crowd */}
-        {crowdData && crowdData.length > 0 && (
-          <div style={{
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 14, padding: "16px 18px",
-            display: "flex", flexDirection: "column", gap: 12,
-          }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)" }}>
-              You vs. the crowd
-            </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginBottom: 3 }}>Your pick</div>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{winner.name}</div>
-                {winnerCrowdRank > 0 && (
-                  <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>
-                    #{winnerCrowdRank} in crowd rankings
+          {/* Header: winner + share */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                You picked
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.2 }}>
+                {winner.name}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                {crowdData && crowdData.length > 0 && (
+                  <div style={{ fontSize: 12, color: crowdAgreed ? "var(--green)" : "var(--muted)" }}>
+                    {crowdAgreed ? "✓ Crowd agrees" : `↕ Crowd top: ${crowdTop?.name}`}
+                  </div>
+                )}
+                {crowdWisdomScore !== null && (
+                  <div style={{
+                    fontSize: 11, fontWeight: 700,
+                    padding: "2px 8px", borderRadius: 99,
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(255,255,255,0.45)",
+                  }}>
+                    {crowdWisdomScore}% match
                   </div>
                 )}
               </div>
-              <div style={{
-                padding: "5px 14px", borderRadius: 99, fontSize: 11.5, fontWeight: 700,
-                background: crowdAgreed ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.05)",
-                border: `1px solid ${crowdAgreed ? "rgba(52,211,153,0.3)" : "rgba(255,255,255,0.08)"}`,
-                color: crowdAgreed ? "var(--green)" : "var(--muted)",
-                flexShrink: 0,
-              }}>
-                {crowdAgreed ? "✓ Crowd agrees" : "↕ You diverge from crowd"}
-              </div>
             </div>
-            {!crowdAgreed && crowdTop && (
-              <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.35)", paddingTop: 4, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                Crowd&apos;s current #1:{" "}
-                <strong style={{ color: "rgba(255,255,255,0.65)" }}>{crowdTop.name}</strong>
-                {crowdData[0].totalVotes > 0 && (
-                  <span style={{ color: "rgba(255,255,255,0.25)" }}> Â· {Math.round(crowdData[0].winRate)}% win rate</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Crowd Wisdom Score */}
-        {crowdWisdomScore !== null && (() => {
-          const ringColor = crowdWisdomScore >= 70 ? "var(--green)" : crowdWisdomScore >= 40 ? "var(--accent)" : "#F87171";
-          const circumference = 2 * Math.PI * 44;
-          return (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-              <svg width="100" height="100" viewBox="0 0 100 100" aria-label={`Crowd wisdom score: ${crowdWisdomScore}%`}>
-                <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-                <circle
-                  cx="50" cy="50" r="44" fill="none"
-                  stroke={ringColor} strokeWidth="8" strokeLinecap="round"
-                  strokeDasharray={`${circumference}`}
-                  strokeDashoffset={`${circumference * (1 - crowdWisdomScore / 100)}`}
-                  transform="rotate(-90 50 50)"
-                  style={{ transition: "stroke-dashoffset 1s ease" }}
-                />
-                <text x="50" y="50" textAnchor="middle" dominantBaseline="central"
-                  style={{ fontSize: 22, fontWeight: 800, fill: "#fff" }}>
-                  {crowdWisdomScore}%
-                </text>
-              </svg>
-              <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", maxWidth: 220 }}>
-                You agreed with the crowd{" "}
-                <strong style={{ color: "#fff" }}>{crowdWisdomScore}% of the time</strong>
-              </div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)" }}>
-                Crowd Wisdom Score
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Streak + total ranked */}
-        {(
-          <div style={{ display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap" }}>
-            {streak >= 2 && (
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 24 }}>🔥</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{streak}</div>
-                <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>Day Streak</div>
-              </div>
-            )}
-            {totalCompleted > 0 && (
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{totalCompleted}</div>
-                <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>Total Ranked</div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Share (WhatsApp only) */}
-        {(
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
-              target="_blank" rel="noopener noreferrer"
+            <button
+              onClick={() => setShowSharePopup(true)}
               style={{
-                fontSize: 14, fontWeight: 700, padding: "11px 26px", borderRadius: 12,
+                fontSize: 13, fontWeight: 700, padding: "9px 18px", borderRadius: 12,
                 background: "rgba(37,211,102,0.12)",
                 border: "1px solid rgba(37,211,102,0.3)",
                 color: "#25D366",
-                textDecoration: "none",
-                display: "flex", alignItems: "center", gap: 8,
+                cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6,
+                flexShrink: 0,
               }}
             >
-              💬 Share on WhatsApp
-            </a>
+              💬 Challenge a friend
+            </button>
           </div>
-        )}
 
-        {/* Final actions */}
-        {(
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-            <a
-              href={`/categories/${categorySlug}/leaderboard`}
-              style={{
-                background: "var(--accent)", color: "#fff",
-                borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 700,
-                textDecoration: "none", boxShadow: "0 4px 20px var(--accent-glow)",
-              }}
-            >
-              View Rankings →
-            </a>
+          {/* Community ranking */}
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: 16, padding: 6,
+            display: "flex", flexDirection: "column", gap: 2,
+          }}>
+            <div style={{ padding: "10px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)", marginBottom: 2 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)" }}>
+                Community Ranking
+              </span>
+            </div>
+            {crowdData && crowdData.length > 0 ? (
+              crowdData.map((cd, i) => {
+                const item = itemMap[cd.itemId];
+                if (!item) return null;
+                const isYourPick = item.id === winner.id;
+                return (
+                  <div key={item.id} style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "11px 14px", borderRadius: 12,
+                    background: isYourPick ? "rgba(99,102,241,0.06)" : i % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent",
+                    border: `1px solid ${isYourPick ? "rgba(99,102,241,0.15)" : "transparent"}`,
+                  }}>
+                    <div style={{ width: 28, flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                      {medals[i] ? (
+                        <span style={{ fontSize: 18 }}>{medals[i]}</span>
+                      ) : (
+                        <span style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.25)", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.06)" }}>
+                          {i + 1}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, fontSize: 14, fontWeight: isYourPick ? 700 : 600, letterSpacing: "-0.02em" }}>
+                      {item.name}
+                    </div>
+                    {isYourPick && (
+                      <div style={{
+                        fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+                        padding: "3px 9px", borderRadius: 99,
+                        background: "rgba(99,102,241,0.15)",
+                        border: "1px solid rgba(99,102,241,0.3)",
+                        color: "var(--accent)",
+                        flexShrink: 0,
+                      }}>
+                        your pick
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ padding: "24px 14px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
+                No community votes yet
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div style={{ display: "flex", justifyContent: "center" }}>
             <button
               onClick={() => router.push("/categories")}
               style={{
-                background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
-                border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12,
-                padding: "12px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer",
+                background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)",
+                border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12,
+                padding: "10px 22px", fontSize: 13, fontWeight: 600, cursor: "pointer",
               }}
             >
               ← Categories
             </button>
           </div>
-        )}
-
-        {/* Bracket tree */}
-        <div style={{
-          background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)",
-          borderRadius: 16, padding: "20px 16px",
-        }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: 16 }}>
-            Your bracket
-          </div>
-          <BracketTree state={state} itemMap={itemMap} />
         </div>
-      </div>
-      {showSharePopup && createPortal(
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 1000,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
-        }} onClick={() => setShowSharePopup(false)}>
-          {/* Popup */}
-          <div onClick={e => e.stopPropagation()} style={{
-            background: "var(--surface)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 20, padding: "32px 28px",
-            width: "min(90vw, 340px)",
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
-            boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
-          }}>
-            <div style={{ fontSize: 32 }}>💬</div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 8 }}>
-                Invite friends to vote
+
+        {showSharePopup && createPortal(
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
+          }} onClick={() => setShowSharePopup(false)}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: "var(--surface)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 20, padding: "32px 28px",
+              width: "min(90vw, 340px)",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
+              boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+            }}>
+              <div style={{ fontSize: 32 }}>💬</div>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 8 }}>
+                  Invite friends to vote
+                </div>
+                <div style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6 }}>
+                  See how their picks compare to yours.
+                </div>
               </div>
-              <div style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6 }}>
-                See how their picks compare to yours.
-              </div>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
+                target="_blank" rel="noopener noreferrer"
+                onClick={() => setShowSharePopup(false)}
+                style={{
+                  width: "100%", textAlign: "center",
+                  fontSize: 15, fontWeight: 700, padding: "13px 0", borderRadius: 12,
+                  background: "#25D366",
+                  color: "#fff",
+                  textDecoration: "none",
+                  display: "block",
+                  boxShadow: "0 4px 24px rgba(37,211,102,0.35)",
+                }}
+              >
+                Share on WhatsApp
+              </a>
+              <button
+                onClick={() => setShowSharePopup(false)}
+                style={{
+                  background: "none", border: "none", color: "var(--muted)",
+                  fontSize: 13, cursor: "pointer", padding: "4px 0",
+                }}
+              >
+                Maybe later
+              </button>
             </div>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
-              target="_blank" rel="noopener noreferrer"
-              onClick={() => setShowSharePopup(false)}
-              style={{
-                width: "100%", textAlign: "center",
-                fontSize: 15, fontWeight: 700, padding: "13px 0", borderRadius: 12,
-                background: "#25D366",
-                color: "#fff",
-                textDecoration: "none",
-                display: "block",
-                boxShadow: "0 4px 24px rgba(37,211,102,0.35)",
-              }}
-            >
-              Share on WhatsApp
-            </a>
-            <button
-              onClick={() => setShowSharePopup(false)}
-              style={{
-                background: "none", border: "none", color: "var(--muted)",
-                fontSize: 13, cursor: "pointer", padding: "4px 0",
-              }}
-            >
-              Maybe later
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
       </>
     );
   }
-
   if (!currentMatchup) return null;
 
   const itemA = itemMap[currentMatchup.itemAId];
