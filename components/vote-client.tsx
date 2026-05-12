@@ -504,7 +504,7 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
             width: "min(90vw, 340px)",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
             boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
-            animation: "fadeup 0.3s ease forwards",
+            opacity: 1,
           }}>
             <div style={{ fontSize: 32 }}>💬</div>
             <div style={{ textAlign: "center" }}>
