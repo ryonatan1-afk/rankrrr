@@ -98,7 +98,7 @@ export async function replaceItem(itemId: string): Promise<{ name: string; emoji
     max_tokens: 80,
     messages: [{
       role: "user",
-      content: `Category: "${item.category.name}"\nReplace this item: "${item.name}"\nDo NOT use any of these (already in the list): ${existingNames.join(", ")}\n\nReply with ONLY valid JSON, no other text: {"name": "Replacement Name", "emoji": "ðŸŽµ"}`,
+      content: `Category: "${item.category.name}"\nReplace this item: "${item.name}"\nDo NOT use any of these (already in the list): ${existingNames.join(", ")}\n\nReply with ONLY valid JSON, no other text: {"name": "Replacement Name", "emoji": "🎵"}`,
     }],
   });
 
@@ -124,6 +124,9 @@ export async function updateFeaturedDate(id: string, featuredDate: string | null
   revalidatePath("/");
 }
 
-
-
-
+export async function adminResetSession(categoryId: string) {
+  const user = await requireAdmin();
+  await db.userSession.deleteMany({
+    where: { userId: user.id, categoryId },
+  });
+}

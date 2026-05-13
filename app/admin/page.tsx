@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import AdminClient from "./admin-client";
@@ -20,7 +20,7 @@ export default async function AdminPage() {
   const [categories, scheduled] = await Promise.all([
     db.category.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, emoji: true, status: true, createdAt: true, featuredDate: true, showImages: true, _count: { select: { votes: true, items: true } }, author: { select: { email: true } } },
+      select: { id: true, slug: true, name: true, emoji: true, status: true, createdAt: true, featuredDate: true, showImages: true, _count: { select: { votes: true, items: true } }, author: { select: { email: true } } },
     }),
     db.category.findMany({
       where: { featuredDate: { gte: todayUTC }, status: { not: "DELETED" } },

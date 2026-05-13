@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { generateCategoryAction, createCategoryAction } from "@/app/actions";
+import { generateCategoryAction, createCategoryAction, suggestReplacementItem } from "@/app/actions";
 import type { GeneratedCategory } from "@/lib/ai/generate-category";
 
 const PLACEHOLDER_EXAMPLES = [
@@ -23,6 +23,7 @@ export default function NewCategoryPage() {
   const [phase, setPhase] = useState<"input" | "generating" | "preview" | "saving">("input");
   const [preview, setPreview] = useState<GeneratedCategory | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
 
   async function handleGenerate() {
     if (!topic.trim()) return;
@@ -35,6 +36,29 @@ export default function NewCategoryPage() {
     } catch (e) {
       setError("Generation failed. Try a different topic.");
       setPhase("input");
+    }
+  }
+
+  async function handleReplaceItem(index: number) {
+    if (!preview || replacingIndex !== null) return;
+    setReplacingIndex(index);
+    try {
+      const existingNames = preview.items.map(item => item.name);
+      const replacement = await suggestReplacementItem(
+        preview.name,
+        existingNames,
+        preview.items[index].name,
+      );
+      setPreview(prev => {
+        if (!prev) return prev;
+        const items = [...prev.items];
+        items[index] = replacement;
+        return { ...prev, items };
+      });
+    } catch {
+      // silently leave item unchanged — user can retry
+    } finally {
+      setReplacingIndex(null);
     }
   }
 
@@ -189,7 +213,7 @@ export default function NewCategoryPage() {
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 onClick={handleSave}
-                disabled={phase === "saving"}
+                disabled={phase === "saving" || replacingIndex !== null}
                 style={{
                   flex: 1,
                   background: phase === "saving" ? "rgba(52,211,153,0.4)" : "rgba(52,211,153,0.15)",
@@ -199,7 +223,7 @@ export default function NewCategoryPage() {
                   padding: "13px",
                   fontSize: 14,
                   fontWeight: 700,
-                  cursor: phase === "saving" ? "default" : "pointer",
+                  cursor: (phase === "saving" || replacingIndex !== null) ? "default" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -218,7 +242,7 @@ export default function NewCategoryPage() {
               </button>
               <button
                 onClick={() => { setPhase("input"); setPreview(null); }}
-                disabled={phase === "saving"}
+                disabled={phase === "saving" || replacingIndex !== null}
                 style={{
                   background: "rgba(255,255,255,0.04)",
                   color: "var(--muted)",
@@ -255,31 +279,62 @@ export default function NewCategoryPage() {
                 gap: 8,
               }}
             >
-              {preview.items.map((item, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 14,
-                    padding: "14px 14px",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 10,
-                    animation: "fadeup 0.3s ease forwards",
-                    animationDelay: `${i * 0.04}s`,
-                    opacity: 0,
-                  }}
-                >
-                  <span style={{ fontSize: 22, flexShrink: 0 }}>{item.emoji}</span>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 650, letterSpacing: "-0.02em" }}>{item.name}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 3, lineHeight: 1.5 }}>
-                      {item.description}
+              {preview.items.map((item, i) => {
+                const isThisReplacing = replacingIndex === i;
+                const anyReplacing = replacingIndex !== null;
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      background: "var(--surface)",
+                      border: `1px solid ${isThisReplacing ? "rgba(99,102,241,0.35)" : "var(--border)"}`,
+                      borderRadius: 14,
+                      padding: "12px 12px 12px 14px",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      animation: "fadeup 0.3s ease forwards",
+                      animationDelay: `${i * 0.04}s`,
+                      opacity: isThisReplacing ? 0.7 : anyReplacing && !isThisReplacing ? 0.4 : 0,
+                      transition: "opacity 0.15s, border-color 0.15s",
+                    }}
+                  >
+                    <span style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>
+                      {isThisReplacing ? "⟳" : item.emoji}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 650, letterSpacing: "-0.02em" }}>
+                        {isThisReplacing ? "Finding replacement…" : item.name}
+                      </div>
+                      {!isThisReplacing && (
+                        <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 3, lineHeight: 1.5 }}>
+                          {item.description}
+                        </div>
+                      )}
                     </div>
+                    <button
+                      onClick={() => handleReplaceItem(i)}
+                      disabled={anyReplacing || phase === "saving"}
+                      aria-label={`Replace ${item.name}`}
+                      style={{
+                        flexShrink: 0,
+                        fontSize: 13,
+                        lineHeight: 1,
+                        padding: "4px 7px",
+                        borderRadius: 6,
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        background: "rgba(255,255,255,0.04)",
+                        color: anyReplacing ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.35)",
+                        cursor: anyReplacing || phase === "saving" ? "default" : "pointer",
+                        transition: "color 0.15s",
+                        marginTop: 1,
+                      }}
+                    >
+                      ↺
+                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

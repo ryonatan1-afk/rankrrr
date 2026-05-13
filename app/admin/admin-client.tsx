@@ -1,13 +1,15 @@
 ﻿"use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { updateCategoryStatus, updateCategoryMeta, updateFeaturedDate, destroyCategory, getCategoryItems, refreshItemImage, setItemImageUrl, replaceItem, toggleCategoryImages } from "./actions";
+import { updateCategoryStatus, updateCategoryMeta, updateFeaturedDate, destroyCategory, getCategoryItems, refreshItemImage, setItemImageUrl, replaceItem, toggleCategoryImages, adminResetSession } from "./actions";
 
 type Status = "ACTIVE" | "HIDDEN" | "DELETED";
 
 interface Category {
   id: string;
+  slug: string;
   name: string;
   emoji: string | null;
   status: Status;
@@ -38,6 +40,7 @@ function StatusBadge({ status }: { status: Status }) {
 }
 
 function CategoryRow({ cat }: { cat: Category }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isPendingDate, startDateTransition] = useTransition();
   const [confirmDestroy, setConfirmDestroy] = useState(false);
@@ -47,6 +50,7 @@ function CategoryRow({ cat }: { cat: Category }) {
   const [dateValue, setDateValue] = useState(
     cat.featuredDate ? new Date(cat.featuredDate).toISOString().slice(0, 10) : ""
   );
+  const [isRevoting, setIsRevoting] = useState(false);
 
   function handleSetDaily() {
     startDateTransition(() => updateFeaturedDate(cat.id, dateValue || null));
@@ -71,6 +75,12 @@ function CategoryRow({ cat }: { cat: Category }) {
 
   function handleToggleImages() {
     startTransition(() => toggleCategoryImages(cat.id, !cat.showImages));
+  }
+
+  async function handleRevote() {
+    setIsRevoting(true);
+    await adminResetSession(cat.id);
+    router.push(`/categories/${cat.slug}/vote`);
   }
 
   return (
@@ -151,6 +161,7 @@ function CategoryRow({ cat }: { cat: Category }) {
           <>
             <ActionButton onClick={() => setEditing(true)}>Edit</ActionButton>
             <ActionButton onClick={handleToggleImages} color={cat.showImages ? "#818CF8" : "rgba(255,255,255,0.3)"}>{cat.showImages ? "📷 Images" : "🚫 Images"}</ActionButton>
+            <ActionButton onClick={handleRevote} disabled={isRevoting} color="var(--green)">{isRevoting ? "…" : "↺ Re-vote"}</ActionButton>
             {cat.status !== "ACTIVE"  && <ActionButton onClick={() => handleStatus("ACTIVE")}  color="var(--green)">Active</ActionButton>}
             {cat.status !== "HIDDEN"  && <ActionButton onClick={() => handleStatus("HIDDEN")}  color="#FBBF24">Hide</ActionButton>}
             {cat.status !== "DELETED" && <ActionButton onClick={() => handleStatus("DELETED")} color="var(--red)">Delete</ActionButton>}

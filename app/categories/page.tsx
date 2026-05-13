@@ -76,7 +76,7 @@ export default async function CategoriesPage() {
                   border: "1px solid var(--border)",
                 }}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
                   {/* Progress ring with initial */}
                   <div className="relative w-12 h-12 flex-shrink-0">
                     <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
@@ -100,8 +100,8 @@ export default async function CategoriesPage() {
                     </span>
                   </div>
 
-                  <div>
-                    <div className="font-semibold tracking-tight">{cat.name}</div>
+                  <div className="min-w-0">
+                    <div className="font-semibold tracking-tight truncate">{cat.name}</div>
                     <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
                       {isComplete
                         ? "Complete"

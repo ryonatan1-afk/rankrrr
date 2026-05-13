@@ -3,6 +3,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { applyVote, generateBracket, isBracketComplete, type BracketState } from "@/lib/bracket";
 import { generateCategory, type GeneratedCategory } from "@/lib/ai/generate-category";
@@ -72,6 +73,35 @@ export async function generateCategoryAction(topic: string): Promise<GeneratedCa
   while (result.items.length < 16) result.items.push(result.items[result.items.length - 1]);
   result.items = result.items.slice(0, 16);
   return result;
+}
+
+export async function suggestReplacementItem(
+  categoryName: string,
+  existingItemNames: string[],
+  currentItemName: string,
+): Promise<{ name: string; emoji: string; description: string }> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("No API key configured");
+
+  const client = new Anthropic({ apiKey });
+  const msg = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 150,
+    messages: [{
+      role: "user",
+      content: `Category: "${categoryName}"\nReplace this item: "${currentItemName}"\nDo NOT use any of these (already in the list): ${existingItemNames.join(", ")}\n\nReply with ONLY valid JSON, no other text: {"name": "Item Name", "emoji": "🎯", "description": "One short sentence about why it belongs in the category."}`,
+    }],
+  });
+
+  const raw = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
+  const match = raw.match(/\{[\s\S]*?\}/);
+  if (!match) throw new Error("Invalid AI response");
+  const parsed = JSON.parse(match[0]) as { name?: string; emoji?: string; description?: string };
+  if (!parsed.name) throw new Error("AI did not return a name");
+  return { name: parsed.name, emoji: parsed.emoji ?? "🎯", description: parsed.description ?? "" };
 }
 
 export async function createCategoryAction(data: GeneratedCategory): Promise<{ slug: string }> {
