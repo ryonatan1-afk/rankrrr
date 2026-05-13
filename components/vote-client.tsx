@@ -14,6 +14,7 @@ import {
 } from "@/lib/bracket";
 import { BracketTree } from "@/components/bracket-tree";
 import HowToModal from "@/components/how-to-modal";
+import { trackEvent } from "@/lib/analytics";
 
 interface Item {
   id: string;
@@ -274,6 +275,13 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
 
   useEffect(() => {
     if (!isBracketComplete(state)) return;
+    const winnerId = getBracketWinner(state);
+    const winnerItem = winnerId ? itemMap[winnerId] : null;
+    trackEvent("bracket_completed", {
+      category_slug: categorySlug,
+      category_name: categoryName,
+      winner_name: winnerItem?.name ?? "",
+    });
     const t = setTimeout(() => setShowSharePopup(true), 600);
     return () => clearTimeout(t);
   }, [state]);
@@ -397,33 +405,36 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
                         background: "rgba(99,102,241,0.15)",
                         border: "1px solid rgba(99,102,241,0.3)",
                         color: "var(--accent)",
-                        flexShrink: 0,
                       }}>
-                        your pick
+                        Your pick
                       </div>
                     )}
                   </div>
                 );
               })
             ) : (
-              <div style={{ padding: "24px 14px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
-                No community votes yet
+              <div style={{ padding: "20px 14px", fontSize: 13, color: "var(--muted)" }}>
+                No community data yet — be the first to vote!
               </div>
             )}
           </div>
 
-          {/* Footer */}
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <button
-              onClick={() => router.push("/categories")}
+          <BracketTree state={state} itemMap={itemMap} />
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <a
+              href={`/categories/${categorySlug}`}
               style={{
-                background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)",
-                border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12,
-                padding: "10px 22px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                flex: 1, textAlign: "center",
+                fontSize: 13, fontWeight: 600, padding: "11px 0", borderRadius: 12,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.5)",
+                textDecoration: "none",
               }}
             >
-              ← Categories
-            </button>
+              Rankings
+            </a>
           </div>
         </div>
 
@@ -453,7 +464,10 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
                 target="_blank" rel="noopener noreferrer"
-                onClick={() => setShowSharePopup(false)}
+                onClick={() => {
+                  trackEvent("share_whatsapp", { category_slug: categorySlug, category_name: categoryName });
+                  setShowSharePopup(false);
+                }}
                 style={{
                   width: "100%", textAlign: "center",
                   fontSize: 15, fontWeight: 700, padding: "13px 0", borderRadius: 12,
@@ -587,6 +601,3 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
     </>
   );
 }
-
-
-

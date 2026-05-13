@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { generateCategoryAction, createCategoryAction, suggestReplacementItem } from "@/app/actions";
+import { trackEvent } from "@/lib/analytics";
 import type { GeneratedCategory } from "@/lib/ai/generate-category";
 
 const PLACEHOLDER_EXAMPLES = [
@@ -67,6 +68,7 @@ export default function NewCategoryPage() {
     setPhase("saving");
     try {
       const { slug } = await createCategoryAction(preview);
+      trackEvent("category_created", { category_name: preview.name, category_slug: slug });
       router.push(`/categories/${slug}/vote`);
     } catch (e) {
       setError("Failed to save. Please try again.");
