@@ -217,6 +217,19 @@ export default function VoteClient({ categoryId, categorySlug, categoryName, ini
   const cardsContainerRef = useRef<HTMLDivElement>(null);
   const [showSharePopup, setShowSharePopup] = useState(false);
   const hasVoted = useRef(false);
+  const hasRefreshed = useRef(false);
+
+  // Images are fetched asynchronously after category creation. If none have arrived
+  // yet, schedule a single page refresh to pick them up once the background job finishes.
+  useEffect(() => {
+    if (!showImages || hasRefreshed.current) return;
+    const hasAnyImage = Object.values(itemMap).some((item) => item.imageUrl);
+    if (hasAnyImage) return;
+    hasRefreshed.current = true;
+    const t = setTimeout(() => router.refresh(), 3000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const currentMatchup = getCurrentMatchup(state);
   const { done, total } = getRoundProgress(state);
